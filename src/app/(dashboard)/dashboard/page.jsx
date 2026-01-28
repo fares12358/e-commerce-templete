@@ -6,6 +6,8 @@ import Loader from "@/components/ui/Loader";
 import StatCard from "@/components/ui/StatCard";
 import { FaBoxOpen, FaChartLine, FaUser, FaHourglassStart } from "react-icons/fa";
 import OrderCard from "@/components/orders/OrderCard";
+import { Line } from "react-chartjs-2";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 import {
   Chart as ChartJS,
@@ -17,9 +19,6 @@ import {
   Legend,
   Filler
 } from "chart.js";
-
-import { Line } from "react-chartjs-2";
-import CustomSelect from "@/components/ui/CustomSelect";
 
 ChartJS.register(
   CategoryScale,
@@ -33,9 +32,7 @@ ChartJS.register(
 
 const fakeWeekChart = {
   labels: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
-  orders: [3, 6, 4, 9, 7, 12, 20
-
-  ]
+  orders: [3, 6, 4, 9, 15, 18, 30]
 };
 
 export default function DashboardPage() {
@@ -57,7 +54,6 @@ export default function DashboardPage() {
     }
   };
 
-
   const getTrendColor = (data) => {
     if (!data || data.length < 2) return "#6366f1";
 
@@ -69,7 +65,7 @@ export default function DashboardPage() {
     return "#facc15";                     // yellow
   };
 
-  const trendColor = getTrendColor(fakeWeekChart.orders);
+  const trendColor = getTrendColor(stats?.chart?.orders);
 
   useEffect(() => {
     fetchStats();
@@ -123,7 +119,7 @@ export default function DashboardPage() {
               datasets: [
                 {
                   label: "Orders",
-                  data: fakeWeekChart.orders,
+                  data: stats.chart.orders,
                   borderColor: trendColor,
                   backgroundColor: (ctx) => {
                     const chart = ctx.chart;
@@ -160,12 +156,8 @@ export default function DashboardPage() {
               }
             }}
           />
-
         </div>
-
       </div>
-
-
 
       {/* Latest Orders */}
       <div className="bg-white shadow-sm rounded-md p-4">
