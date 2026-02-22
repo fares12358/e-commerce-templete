@@ -30,11 +30,6 @@ ChartJS.register(
   Filler
 );
 
-const fakeWeekChart = {
-  labels: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
-  orders: [3, 6, 4, 9, 15, 18, 30]
-};
-
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +42,9 @@ export default function DashboardPage() {
       if (res.success) {
         setStats(res.data);
       }
-    } catch (err) {
+      console.log(res.data);
+      
+    } catch (err) { 
       console.log(err);
     } finally {
       setLoading(false);
@@ -64,8 +61,10 @@ export default function DashboardPage() {
     if (last < first) return "#ef4444";   // red
     return "#facc15";                     // yellow
   };
+  
 
   const trendColor = getTrendColor(stats?.chart?.orders);
+  const incomeTrendColor = getTrendColor(stats?.chart?.income?.income);
 
   useEffect(() => {
     fetchStats();
@@ -87,7 +86,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard index={0} icon={<FaUser className="drop-shadow-md" size={30} />} color={'from-blue-800 to-blue-400'} title="Users" value={stats.users} />
         <StatCard index={1} icon={<FaBoxOpen className="drop-shadow-md" size={30} />} color={'from-fuchsia-800 to-fuchsia-400'} title="Orders" value={stats.orders.total} />
-        <StatCard index={2} icon={<FaChartLine className="drop-shadow-md" size={30} />} color={'from-pink-800 to-pink-400'} title="Revenue" value={`$${stats.revenue}`} />
+        <StatCard index={2} icon={<FaChartLine className="drop-shadow-md" size={30} />} color={'from-pink-800 to-pink-400'} title="Revenue" value={`$${stats.revenue.toFixed(2)}`} />
         <StatCard index={3} icon={<FaHourglassStart className="drop-shadow-md" size={30} />} color={'from-teal-800 to-teal-400'} title="Pending Orders" value={stats.orders.pending} />
       </div>
       {/* line chart */}
@@ -115,11 +114,11 @@ export default function DashboardPage() {
           <Line
             className="max-w-screen w-full"
             data={{
-              labels: fakeWeekChart.labels,
+              labels: stats.chart.orders.labels,
               datasets: [
                 {
                   label: "Orders",
-                  data: stats.chart.orders,
+                  data: stats.chart.orders.orders,
                   borderColor: trendColor,
                   backgroundColor: (ctx) => {
                     const chart = ctx.chart;
@@ -158,6 +157,62 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Income line chart */}
+      <div className="bg-white shadow-sm rounded-md p-4 h-[40vh] flex flex-col">
+
+        <div className="font-medium text-lg md:text-2xl mb-4">
+          Income Overview
+        </div>
+
+        <div className="flex-1 overflow-hidden">
+          <Line
+            className="max-w-screen w-full"
+            data={{
+              labels: stats.chart.income.labels,
+              datasets: [
+                {
+                  label: "Income",
+                  data: stats.chart.income.income,
+                  borderColor: incomeTrendColor,
+                  backgroundColor: (ctx) => {
+                    const chart = ctx.chart;
+                    const { ctx: canvas, chartArea } = chart;
+                    if (!chartArea) return null;
+
+                    const g = canvas.createLinearGradient(
+                      0,
+                      chartArea.top,
+                      0,
+                      chartArea.bottom
+                    );
+                    g.addColorStop(0, `${incomeTrendColor}90`);
+                    g.addColorStop(1, `${incomeTrendColor}25`);
+
+                    return g;
+                  },
+                  tension: 0.4,
+                  borderWidth: 2,
+                  fill: "origin",
+                  pointRadius: 4,
+                  pointBackgroundColor: incomeTrendColor
+                }
+              ]
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }}
+          />
+        </div>
+      </div>
+
 
       {/* Latest Orders */}
       <div className="bg-white shadow-sm rounded-md p-4">

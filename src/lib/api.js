@@ -30,12 +30,20 @@ export const updateAdminProfile = (payload) =>
 export const changeAdminPassword = (payload) =>
     api.put("/admin/change-password", payload);
 
+export const getConfig = async () =>
+    api.get("/admin/config");
+
+
+export const updateConfig = async (payload) =>
+    api.put("/admin/config", payload);
+
+
 /* ================= DASHBOARD ================= */
 
 export const getDashboardStats = (range = "week") => {
     return api.get(`/admin/dashboard/stats?range=${range}`);
-  };
-  
+};
+
 /* ================= CATEGORIES ================= */
 
 export const getCategories = async () => {
@@ -215,4 +223,51 @@ export const toggleUserStatus = async (id) => {
 
 export const getUserDetails = async (id) => {
     return api.get(`/users/${id}`);
+};
+
+/* ================= ADS ================= */
+export const getAds = async () =>
+    api.get("/admin/ads");
+
+export const getAdById = async (id) =>
+    api.get(`/admin/ads/${id}`);
+
+export const createAd = async (formData) =>
+    api.post("/admin/ads", formData);
+
+export const updateAd = async (id, formData) =>
+    api.put(`/admin/ads/${id}`, formData);
+
+export const deleteAd = async (id) =>
+    api.delete(`/admin/ads/${id}`);
+
+
+/* ================= CONTENT ================= */
+
+
+// Get Content (Public - for website)
+export const getContent = async () => api.get('/admin/content');
+
+// Update Main Content (Admin - About, Vision, Mission)
+export const updateMainContent = async (data) => {
+    const response = await api.put('/admin/content/main', data);
+    return response.data;
+};
+
+// Add Section (Admin - Terms/Privacy)
+export const addContentSection = async (data) => {
+    const response = await api.post('/admin/content/section', data);
+    return response.data;
+};
+
+// Update Section (Admin - Terms/Privacy)
+export const updateContentSection = async (data) => {
+    const response = await api.put('/admin/content/section', data);
+    return response.data;
+};
+
+// Delete Section (Admin - Terms/Privacy)
+export const deleteContentSection = async (data) => {
+    const response = await api.delete('/admin/content/section', { data });
+    return response.data;
 };

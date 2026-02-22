@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { FaDolly, FaSignOutAlt, FaStore, FaTags, FaThLarge, FaUser, FaUserCog } from "react-icons/fa";
+import { FaBullhorn, FaDolly, FaSignOutAlt, FaStore, FaTags, FaThLarge, FaUser, FaUserCog } from "react-icons/fa";
 import ConfirmModal from "../ui/ConfirmModal";
 import { useState } from "react";
 const links = [
@@ -13,7 +13,9 @@ const links = [
   { name: "Products", href: "/products", icon: FaTags },
   { name: "Orders", href: "/orders", icon: FaDolly },
   { name: "Users", href: "/users", icon: FaUser },
+  { name: "Ads", href: "/ads", icon: FaBullhorn },
   { name: "Profile", href: "/profile", icon: FaUserCog },
+  { name: "Content", href: "/content", icon: FaUserCog },
 ];
 export default function Sidebar({ open, onClose }) {
   const pathname = usePathname();
