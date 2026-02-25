@@ -48,7 +48,7 @@ export default function UserDetailsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
+      <div className="flex justify-center items-center py-20 w-full h-screen">
         <Loader />
       </div>
     );
@@ -62,7 +62,8 @@ export default function UserDetailsPage() {
       {/* BACK */}
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-sm hover:underline"
+        className="flex items-center shadow-sm gap-2 text-sm bg-gradient-to-br from-zinc-600 to-zinc-400 text-white font-semibold py-3 px-5 rounded-md hover:-translate-y-1 duration-300 transition-all"
+
       >
         <FaArrowLeft /> Back
       </button>
@@ -103,7 +104,7 @@ export default function UserDetailsPage() {
 
       {/* ================= STATS ================= */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 
         <StatCard title="Total" value={stats.total} icon={<FaBoxOpen />} color="from-gray-700 to-gray-400" />
         <StatCard title="Pending" value={stats.pending} icon={<FaClock />} color="from-yellow-700 to-yellow-400" />

@@ -13,7 +13,10 @@ import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AdminProfilePage() {
-    const { setAdmin } = useAuth();
+    const { setAdmin, adminProfileCache,
+        setAdminProfileCache,
+        configCache,
+        setConfigCache } = useAuth();
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -50,51 +53,72 @@ export default function AdminProfilePage() {
     /* ================= LOAD DATA ================= */
     const fetchProfile = async () => {
         try {
+            // ✅ Use cache if exists
+            if (adminProfileCache) {
+                setName(adminProfileCache.name || "");
+                setEmail(adminProfileCache.email || "");
+                return;
+            }
+
             const res = await getAdminProfile();
+
             if (res.success) {
                 setName(res.data.name || "");
                 setEmail(res.data.email || "");
                 setAdmin(res.data);
+
+                // 🔥 Save to cache
+                setAdminProfileCache(res.data);
             }
         } catch {
-            toast.error("فشل تحميل بيانات الأدمن");
+            toast.error("Failed to load admin data");
         }
+    };
+
+    const applyConfig = (data) => {
+        setVat(data.vat ?? "");
+
+        const minutes = data.sendTime || 0;
+        const days = Math.floor(minutes / (24 * 60));
+        const hours = Math.floor((minutes % (24 * 60)) / 60);
+
+        setDeliveryDays(days);
+        setDeliveryHours(hours);
+
+        setContactEmail(data.contact?.email ?? "");
+        setContactPhone(data.contact?.phone ?? "");
+        setWhatsappLink(data.contact?.whatsappLink ?? "");
+
+        setAddress(data.address ?? "");
+        setShipment(data.shipment ?? "");
+        setSimple(data.simple ?? "");
+
+        setFacebook(data.socialMedia?.facebook ?? "");
+        setTwitter(data.socialMedia?.twitter ?? "");
+        setInstagram(data.socialMedia?.instagram ?? "");
+        setYoutube(data.socialMedia?.youtube ?? "");
+        setTelegram(data.socialMedia?.telegram ?? "");
+        setTiktok(data.socialMedia?.tiktok ?? "");
     };
 
     const fetchConfig = async () => {
         try {
+            // ✅ Use cache if exists
+            if (configCache) {
+                applyConfig(configCache);
+                return;
+            }
+
             const res = await getConfig();
-            console.log('config', res);
+
             if (res.success) {
-                setVat(res.data.vat ?? "");
+                applyConfig(res.data);
 
-                const minutes = res.data.sendTime || 0;
-                const days = Math.floor(minutes / (24 * 60));
-                const hours = Math.floor((minutes % (24 * 60)) / 60);
-
-                setDeliveryDays(days);
-                setDeliveryHours(hours);
-
-                // Contact info
-                setContactEmail(res.data.contact?.email ?? "");
-                setContactPhone(res.data.contact?.phone ?? "");
-                setWhatsappLink(res.data.contact?.whatsappLink ?? ""); // Changed
-
-                // Address
-                setAddress(res.data.address ?? "");
-                setShipment(res.data.shipment ?? "");
-                setSimple(res.data.simple ?? "");
-
-                // Social Media
-                setFacebook(res.data.socialMedia?.facebook ?? "");
-                setTwitter(res.data.socialMedia?.twitter ?? "");
-                setInstagram(res.data.socialMedia?.instagram ?? "");
-                setYoutube(res.data.socialMedia?.youtube ?? "");
-                setTelegram(res.data.socialMedia?.telegram ?? "");
-                setTiktok(res.data.socialMedia?.tiktok ?? "");
+                // 🔥 Save to cache
+                setConfigCache(res.data);
             }
         } catch {
-            toast.error("فشل تحميل الإعدادات");
+            toast.error("Failed to load settings");
         }
     };
 
@@ -118,6 +142,7 @@ export default function AdminProfilePage() {
             setSubmitting(true);
             await updateAdminProfile({ name, email });
             toast.success("تم تحديث البيانات بنجاح");
+            setAdminProfileCache(null);
             fetchProfile();
         } catch {
             toast.error("فشل تحديث البيانات");
@@ -244,6 +269,7 @@ export default function AdminProfilePage() {
             });
 
             toast.success("تم تحديث الإعدادات بنجاح");
+            setConfigCache(null);
             fetchConfig();
         } catch {
             toast.error("فشل تحديث الإعدادات");

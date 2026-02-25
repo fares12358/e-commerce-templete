@@ -10,7 +10,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { checkAuth } = useAuth();
+  const { checkAuth, setIsAuth, setAdmin } = useAuth();
 
   const [email, setEmail] = useState("fares.dev.m@gmail.com");
   const [password, setPassword] = useState("123456");
@@ -24,9 +24,9 @@ export default function LoginPage() {
       setLoading(true);
       const res = await loginAdmin({ email, password });
       if (res.success) {
+        await checkAuth();  
         toast.success(res.message || "Login successful");
-        await checkAuth();
-        router.replace("/");
+        router.replace("/dashboard");
       } else {
         toast.error(res.message || "Login failed");
       }
@@ -74,7 +74,7 @@ export default function LoginPage() {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
             >
-              {showPassword ? <FaEye /> :<FaEyeSlash /> }
+              {showPassword ? <FaEye /> : <FaEyeSlash />}
             </button>
           </div>
 

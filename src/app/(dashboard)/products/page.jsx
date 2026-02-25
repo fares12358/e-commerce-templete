@@ -20,16 +20,54 @@ import {
   FaFilter,
 } from "react-icons/fa";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { useAuth } from "@/context/AuthContext";
+
+const generateKey = (filters) => {
+  return JSON.stringify({
+    categoryId: filters.categoryId,
+    isActive: filters.isActive,
+    productNumber: filters.productNumber,
+    sort: filters.sort,
+    page: filters.page,
+  });
+};
+
+const getVisiblePages = (current, total) => {
+  const delta = 1; // how many pages around current
+  const pages = [];
+
+  const range = [];
+  for (
+    let i = Math.max(2, current - delta);
+    i <= Math.min(total - 1, current + delta);
+    i++
+  ) {
+    range.push(i);
+  }
+
+  if (current - delta > 2) {
+    range.unshift("...");
+  }
+
+  if (current + delta < total - 1) {
+    range.push("...");
+  }
+
+  pages.push(1);
+  pages.push(...range);
+  if (total > 1) pages.push(total);
+
+  return pages;
+};
 
 /* ================= PAGE ================= */
-
 export default function ProductsPage() {
   const router = useRouter();
   const fileRef = useRef(null);
-
+  const { productsCache, setProductsCache } = useAuth()
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false)
 
@@ -37,7 +75,7 @@ export default function ProductsPage() {
     categoryId: "",
     isActive: "",
     sort: "newest",
-    name: "",
+    productNumber: "",
     page: 1,
   });
 
@@ -60,57 +98,53 @@ export default function ProductsPage() {
   ]);
 
   /* ================= FETCH ================= */
-
   const fetchAll = async (isFilter = false) => {
+    const key = generateKey(filters);
+
+    // ✅ If cached → use it
+    if (productsCache[key]) {
+      setProducts(productsCache[key]);
+      return;
+    }
+
     try {
-      if (isFilter) {
-        setFilterLoading(true);
-      } else {
-        setLoading(true);
-      }
+      if (isFilter) setFilterLoading(true);
+      else setLoading(true);
 
       const sortMap = {
         newest: { sortBy: "createdAt", order: "desc" },
+        oldest: { sortBy: "createdAt", order: "asc" },
         priceAsc: { sortBy: "price", order: "asc" },
         priceDesc: { sortBy: "price", order: "desc" },
       };
 
       const sortParams = sortMap[filters.sort];
 
-      const [p, c] = await Promise.all([
-        getProducts({
-          categoryId: filters.categoryId || undefined,
-          isActive: filters.isActive || undefined,
-          name: filters.name || undefined,
-          sortBy: sortParams.sortBy,
-          order: sortParams.order,
-          page: filters.page || 1,
-        }),
-        getCategories(),
-      ]);
+      const response = await getProducts({
+        categoryId: filters.categoryId || undefined,
+        isActive: filters.isActive || undefined,
+        productNumber: filters.productNumber || undefined,
+        sortBy: sortParams.sortBy,
+        order: sortParams.order,
+        page: filters.page || 1,
+      });
 
-      if (p.success) setProducts(p.data);
-      if (c.success) setCategories(c.data);
+      if (response.success) {
+        setProducts(response.data);
+        // 🔥 Save in cache
+        setProductsCache((prev) => ({
+          ...prev,
+          [key]: response.data,
+        }));
+      }
 
     } catch {
       toast.error("Failed to load products");
     } finally {
-      if (isFilter) {
-        setFilterLoading(false);
-      } else {
-        setLoading(false);
-      }
+      if (isFilter) setFilterLoading(false);
+      else setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAll(false);   // full page loader
-  }, []);
-
-  useEffect(() => {
-    fetchAll(true);   // grid loader only
-  }, [filters]);
-
 
   /* ================= ATTRIBUTES ================= */
 
@@ -163,17 +197,36 @@ export default function ProductsPage() {
 
   /* ================= IMAGES ================= */
 
-  const addImage = async (file) => {
-    if (!file) return;
-    const compressed = await compressImage(file);
+  const handleMultipleImages = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    setImages((prev) => [
-      ...prev,
-      {
-        file: compressed || file,
-        preview: URL.createObjectURL(file),
-      },
-    ]);
+    const remainingSlots = 5 - images.length;
+
+    if (remainingSlots <= 0) {
+      toast.error("Maximum 5 images allowed");
+      return;
+    }
+
+    const filesToAdd = files.slice(0, remainingSlots);
+
+    if (files.length > remainingSlots) {
+      toast.error(`You can only add ${remainingSlots} more image(s)`);
+    }
+
+    const processedImages = await Promise.all(
+      filesToAdd.map(async (file) => {
+        const compressed = await compressImage(file);
+        return {
+          file: compressed || file,
+          preview: URL.createObjectURL(file),
+        };
+      })
+    );
+
+    setImages((prev) => [...prev, ...processedImages]);
+
+    e.target.value = "";
   };
 
   const removeImage = (i) =>
@@ -217,6 +270,7 @@ export default function ProductsPage() {
       await createProduct(formData);
       toast.success("Product created");
       resetForm();
+      setProductsCache({});
       fetchAll();
     } catch {
       toast.error("Create failed");
@@ -240,6 +294,23 @@ export default function ProductsPage() {
       { name: "", options: [""] }
     ]);
   };
+
+  useEffect(() => {
+    const fetchCategoriesData = async () => {
+      const res = await getCategories();
+      if (res.success) setCategories(res.data);
+    };
+
+    fetchCategoriesData();
+  }, []);
+
+  useEffect(() => {
+    fetchAll(false);
+  }, []);
+
+  useEffect(() => {
+    fetchAll(true);
+  }, [filters]);
 
   if (loading) {
     return (
@@ -293,18 +364,24 @@ export default function ProductsPage() {
 
           {/* Upload */}
           <div
-            onClick={() => fileRef.current.click()}
+            onClick={() => {
+              if (images.length >= 5) {
+                toast.error("Maximum 5 images allowed");
+                return;
+              }
+              fileRef.current.click();
+            }}
             className="flex items-center gap-2 border rounded-md px-4 py-2 cursor-pointer hover:bg-gray-50 w-fit"
           >
             <FaImage /> Upload images
           </div>
-          <input ref={fileRef} hidden type="file" accept="image/*" onChange={(e) => { addImage(e.target.files[0]); e.target.value = ""; }} />
+          <input ref={fileRef} hidden type="file" accept="image/*" multiple disabled={images.length >= 5} onChange={handleMultipleImages} />
 
           {/* Previews */}
           <div className="flex gap-3 flex-wrap md:col-span-2">
             {images.map((img, i) => (
               <div key={i} className="relative">
-                <img src={img.preview} className="h-20 w-20 rounded object-cover" />
+                <img src={img.preview} className="h-20 w-20 rounded object-contain object-center border border-gray-200 shadow-sm" />
                 <button onClick={() => removeImage(i)} type="button" className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                   <FaTimes />
                 </button>
@@ -357,7 +434,7 @@ export default function ProductsPage() {
                   {selections.length > 1 && (
                     <button
                       onClick={() => removeSelection(i)}
-                      className="text-red-600"
+                      className="text-red-600 hover:rotate-180 transition-all duration-300 ease-in-out"
                     >
                       <FaTimes />
                     </button>
@@ -379,7 +456,7 @@ export default function ProductsPage() {
                     {sel.options.length > 1 && (
                       <button
                         onClick={() => removeOption(i, oi)}
-                        className="text-red-600"
+                        className="text-red-600 hover:rotate-180 transition-all duration-300 ease-in-out"
                       >
                         <FaTimes />
                       </button>
@@ -390,7 +467,7 @@ export default function ProductsPage() {
                 <button
                   type="button"
                   onClick={() => addOption(i)}
-                  className="text-sm text-blue-600 flex items-center gap-1"
+                  className="text-sm text-black flex items-center gap-1 py-3 px-4 shadow-sm rounded-md bg-gradient-to-br from-gray-200 to-gray-50 hover:-translate-y-1 transition ease-in-out duration-300"
                 >
                   <FaPlus /> Add option
                 </button>
@@ -414,23 +491,22 @@ export default function ProductsPage() {
         </form>
       </div>
 
-
       {/* ================= FILTERS ================= */}
 
       <div className="flex flex-wrap gap-4 items-center bg-white shadow-sm rounded-md p-4">
 
         <input
-          placeholder="Search by product name"
-          className="border px-3 py-2 rounded-md"
-          value={tempFilters.name}
+          placeholder="Search by product number"
+          className="border px-3 py-2 rounded-md w-full"
+          value={tempFilters.productNumber}
           onChange={(e) =>
-            setTempFilters({ ...tempFilters, name: e.target.value })
+            setTempFilters({ ...tempFilters, productNumber: e.target.value })
           }
         />
 
         <CustomSelect
           placeholder="All categories"
-          value={filters.categoryId}
+          value={tempFilters.categoryId}
           onChange={(val) =>
             setTempFilters({ ...tempFilters, categoryId: val })
           }
@@ -459,42 +535,45 @@ export default function ProductsPage() {
 
         <CustomSelect
           placeholder="Sort"
-          value={filters.sort}
+          value={tempFilters.sort}
           onChange={(val) =>
-            setTempFilters({ ...tempFilters, categoryId: val })
+            setTempFilters({ ...tempFilters, sort: val })
           }
 
           options={[
             { label: "Newest", value: "newest" },
+            { label: "Oldest", value: "oldest" },
             { label: "Price low → high", value: "priceAsc" },
             { label: "Price high → low", value: "priceDesc" },
           ]}
         />
+        <div className="w-fit flex items-center gap-4">
 
-        <button
-          onClick={() => setFilters({ ...tempFilters, page: 1 })}
-          className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md hover:-translate-y-1 transition duration-300 ease-in-out flex items-center justify-center gap-2"
-        >
-          <FaFilter />
-          Apply
-        </button>
+          <button
+            onClick={() => setFilters({ ...tempFilters, page: 1 })}
+            className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md hover:-translate-y-1 transition duration-300 ease-in-out flex items-center justify-center gap-2"
+          >
+            <FaFilter />
+            Apply
+          </button>
 
-        <button
-          onClick={() => {
-            const clean = {
-              categoryId: "",
-              isActive: "",
-              name: "",
-              sort: "newest",
-              page: 1,
-            };
-            setTempFilters(clean);
-            setFilters(clean);
-          }}
-          className="border px-4 py-2 rounded-md hover:bg-gray-50 hover:-translate-y-1 transition duration-300 ease-in-out"
-        >
-          Clear
-        </button>
+          <button
+            onClick={() => {
+              const clean = {
+                categoryId: "",
+                isActive: "",
+                productNumber: "",
+                sort: "newest",
+                page: 1,
+              };
+              setTempFilters(clean);
+              setFilters(clean);
+            }}
+            className="border px-4 py-2 rounded-md hover:bg-gray-50 hover:-translate-y-1 transition duration-300 ease-in-out"
+          >
+            Clear
+          </button>
+        </div>
 
 
       </div>
@@ -506,27 +585,31 @@ export default function ProductsPage() {
         {
           filterLoading ? <div className="w-full min-h-[25vh] col-span-4 flex items-center justify-center"><Loader size={30} /> </div>
             :
-            products?.products?.map((p, i) => (
-              <motion.div
-                key={p._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => router.push(`/products/${p._id}`)}
-                className="cursor-pointer border rounded-md overflow-hidden shadow-sm hover:shadow-md transition duration-300 ease-in-out bg-white"
-              >
-                <div className="h-40 bg-gray-100">
-                  <img src={p.images?.[0]?.url} className="w-full h-full object-cover" />
-                </div>
+            products?.products?.length == 0 ?
+              <div className="w-full h-fit py-5 flex items-center justify-center text-gray-500 font-semibold col-span-4 min-h-[25vh] bg-white rounded-md border">
+                No Products Found
+              </div>
+              :
+              products?.products?.map((p, i) => (
+                <motion.div
+                  key={p._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => router.push(`/products/${p._id}`)}
+                  className="cursor-pointer border rounded-md overflow-hidden shadow-sm hover:shadow-md transition duration-300 ease-in-out bg-white" dir="rtl"
+                >
+                  <div className="h-40 bg-gray-100">
+                    <img src={p.images?.[0]?.url} className="w-full h-full object-cover" />
+                  </div>
 
-                <div className="p-3 space-y-1">
-                  <div className="font-medium truncate">{p.name}</div>
-                  <div className="text-sm text-gray-600 line-clamp-2">{p.categoryId.name}</div>
-                  <div className="text-sm text-gray-600 line-clamp-2">{p.description}</div>
-                  <div className="font-semibold">${p.price}</div>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="p-3 space-y-1">
+                    <div className="font-medium truncate line-clamp-2">{p.name}</div>
+                    <div className="text-sm text-gray-600 line-clamp-2">{p.categoryId.name}</div>
+                    <div className="font-semibold">{p.price.toLocaleString()}</div>
+                  </div>
+                </motion.div>
+              ))}
       </div>
 
       {/* ================= PAGINATION ================= */}
@@ -544,24 +627,32 @@ export default function ProductsPage() {
             Prev
           </button>
 
-          {Array.from({ length: products.pagination.totalPages }).map((_, i) => {
-            const page = i + 1;
-            return (
+          {getVisiblePages(
+            products.pagination.page,
+            products.pagination.totalPages
+          ).map((page, index) => (
+            page === "..." ? (
+              <span key={index} className="px-3 py-1">
+                ...
+              </span>
+            ) : (
               <button
                 key={page}
                 onClick={() => setFilters({ ...filters, page })}
                 className={`px-3 py-1 border rounded ${page === products.pagination.page
-                  ? "bg-black text-white"
-                  : ""
+                    ? "bg-black text-white"
+                    : ""
                   }`}
               >
                 {page}
               </button>
-            );
-          })}
+            )
+          ))}
 
           <button
-            disabled={products.pagination.page === products.pagination.totalPages}
+            disabled={
+              products.pagination.page === products.pagination.totalPages
+            }
             onClick={() =>
               setFilters({ ...filters, page: products.pagination.page + 1 })
             }

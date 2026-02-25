@@ -249,25 +249,14 @@ export const deleteAd = async (id) =>
 export const getContent = async () => api.get('/admin/content');
 
 // Update Main Content (Admin - About, Vision, Mission)
-export const updateMainContent = async (data) => {
-    const response = await api.put('/admin/content/main', data);
-    return response.data;
-};
-
+export const updateMainContent = async (data) =>  api.put('/admin/content/main', data);
+  
 // Add Section (Admin - Terms/Privacy)
-export const addContentSection = async (data) => {
-    const response = await api.post('/admin/content/section', data);
-    return response.data;
-};
+export const addContentSection = async (data) =>  api.post('/admin/content/section', data);
 
 // Update Section (Admin - Terms/Privacy)
-export const updateContentSection = async (data) => {
-    const response = await api.put('/admin/content/section', data);
-    return response.data;
-};
+export const updateContentSection = async (data) => api.put('/admin/content/section', data);
 
 // Delete Section (Admin - Terms/Privacy)
-export const deleteContentSection = async (data) => {
-    const response = await api.delete('/admin/content/section', { data });
-    return response.data;
-};
+export const deleteContentSection = async (data) =>  api.delete('/admin/content/section', { data });
+ 

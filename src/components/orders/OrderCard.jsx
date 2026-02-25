@@ -72,7 +72,7 @@ export default function OrderCard({ order, index }) {
       </span>
 
       {/* Price + arrow */}
-      <div className="flex items-center justify-evenly gap-2 h-full w-fit flex-col">
+      <div className="flex items-center justify-evenly gap-2 h-full w-fit flex-col mx-auto md:ml-auto md:mr-0">
 
         <div className="relative inline-flex items-center hover:-translate-y-1 transition-all duration-300 ease-in-out cursor-default">
           {/* Frosted glass layer */}
@@ -96,7 +96,7 @@ export default function OrderCard({ order, index }) {
           onClick={() => router.push(`/orders/${order._id}`)}
           className="w-full h-fit cursor-pointer rounded-md bg-gradient-to-br from-zinc-600 to-zinc-400 shadow-md text-white flex items-center justify-center gap-2 py-2 px-4 hover:-translate-y-1 transition-all duration-300 ease-in-out">
           <span className="font-semibold text-sm">
-            {order.totalPrice.toFixed(2)}.LE
+            {order.totalPrice.toLocaleString()}
           </span>
           <FaArrowRight className="-rotate-45" />
         </div>

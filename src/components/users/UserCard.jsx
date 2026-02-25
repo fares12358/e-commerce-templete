@@ -27,7 +27,7 @@ export default function UserCard({
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-md p-4 space-y-3 shadow-sm hover:shadow transition relative"
         >
-            <div className="ab absolute top-0 left-0 p-2 shadow-md rounded-br-md cursor-pointer" onClick={() => { router.push(`/users/${user._id}`) }}>
+            <div className="ab absolute top-0 left-0 p-2 shadow-sm rounded-br-md cursor-pointer bg-white" onClick={() => { router.push(`/users/${user._id}`) }}>
                 <FaLink size={15} className="text-blue-400 drop-shadow-md" />
             </div>
             <div className="flex justify-between items-center">
@@ -42,7 +42,7 @@ export default function UserCard({
                 <button
                     onClick={() => onToggle(user)}
                     disabled={loading}
-                    className={`px-4 py-1 rounded-md text-sm transition ${user.isActive
+                    className={`px-4 py-1 rounded-md text-sm transition hover:-translate-y-1 duration-300 ease-in-out ${user.isActive
                         ? "bg-gradient-to-br from-green-800 to-green-400 text-white"
                         : "bg-gradient-to-br from-red-800 to-red-400 text-white"
                         }`}

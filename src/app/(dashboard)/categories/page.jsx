@@ -14,10 +14,14 @@ import { compressImage } from "@/utils/helper";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { motion } from "framer-motion";
 import { FaImage, FaTrash, FaEdit, FaStore } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { categories, setCategories } = useAuth()
+  const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState("new"); // new | old
+  const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -41,9 +45,18 @@ export default function CategoriesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const filteredCategories = categories
+    .filter((cat) =>
+      cat.name.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortOrder === "new") {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      } else {
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      }
+    });
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,6 +121,11 @@ export default function CategoriesPage() {
     }
   };
 
+  useEffect(() => {
+    if (categories.length > 0) return
+    fetchCategories();
+  }, []);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20 h-full w-full">
@@ -122,8 +140,8 @@ export default function CategoriesPage() {
       {/* ===== ADD FORM ===== */}
       <div className="bg-white border rounded-md p-5">
         <h2 className="font-medium mb-4">
-    
-        <div className="bg-gradient-to-br from-teal-800 to-teal-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5">
+
+          <div className="bg-gradient-to-br from-teal-800 to-teal-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5">
             <span className="-rotate-12 text-2xl">
               <FaStore className="drop-shadow-md" size={30} />
             </span>
@@ -181,54 +199,85 @@ export default function CategoriesPage() {
         </form>
       </div>
 
+
+      {/* ===== FILTER & SORT ===== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border rounded-md p-4">
+
+        {/* Search */}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name..."
+          className="border rounded-md px-3 py-2 outline-none w-full"
+        />
+
+        {/* Sort using CustomSelect */}
+        <CustomSelect
+          className={'ml-auto mr-0'}
+          value={sortOrder}
+          placeholder="Sort"
+          onChange={setSortOrder}
+          options={[
+            { label: "Newest First", value: "new" },
+            { label: "Oldest First", value: "old" }
+          ]}
+        />
+
+      </div>
+
       {/* ===== CATEGORIES GRID ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-        {categories.map((cat, i) => (
-          <motion.div
-            key={cat._id}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="flex items-center justify-start gap-4 rounded-md p-4 shadow-md bg-white"
-          >
-            <img
-              src={cat.image?.url}
-              className="h-28 w-28 object-cover rounded-md"
-            />
+        {filteredCategories.length == 0 ?
+          <div className="w-full h-fit py-5 flex items-center justify-center text-gray-500 font-semibold col-span-3 bg-white rounded-md border">
+            No Category Found
+          </div>
+          :
+          filteredCategories.map((cat, i) => (
+            <motion.div
+              key={cat._id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="flex items-center justify-start gap-4 rounded-md p-4 shadow-md bg-white border"
+            >
+              <img
+                src={cat.image?.url}
+                className="size-20 md:size-28 object-cover rounded-md"
+              />
 
-            <div className="flex items-center justify-evenly h-full flex-col">
-              <h3 className="font-medium mb-2">{cat.name}</h3>
+              <div className="flex items-start justify-evenly h-full flex-col">
+                <h3 className="font-medium mb-2 max-w-full overflow-hidden">{cat.name}</h3>
 
-              {/* Status */}
-              <button
-                onClick={() => toggleStatus(cat._id)}
-                disabled={statusLoadingId === cat._id}
-                className={`text-xs font-semibold px-5 py-2 rounded-md hover:-translate-y-1 transition duration-300 ${cat.isActive ? "bg-gradient-to-br from-green-700 to-green-400 text-white" : "bg-gradient-to-br from-red-700 to-red-400 text-white"
-                  }`}
-              >
-                {statusLoadingId === cat._id ? "..." : cat.isActive ? "Active" : "Disabled"}
-              </button>
-            </div>
+                {/* Status */}
+                <button
+                  onClick={() => toggleStatus(cat._id)}
+                  disabled={statusLoadingId === cat._id}
+                  className={`text-xs font-semibold px-5 py-2 rounded-md hover:-translate-y-1 transition duration-300 ${cat.isActive ? "bg-gradient-to-br from-green-700 to-green-400 text-white" : "bg-gradient-to-br from-red-700 to-red-400 text-white"
+                    }`}
+                >
+                  {statusLoadingId === cat._id ? "..." : cat.isActive ? "Active" : "Disabled"}
+                </button>
+              </div>
 
-            {/* Actions */}
-            <div className="flex flex-col items-center justify-evenly h-full">
-              <button
-                onClick={() => handleEdit(cat)}
-                className="flex items-center gap-1 bg-gradient-to-br from-blue-700 to-blue-400 text-white text-xs font-semibold px-5 py-2 rounded-md hover:-translate-y-1 transition duration-300"
-              >
-                <FaEdit /> Edit
-              </button>
+              {/* Actions */}
+              <div className="flex flex-col items-center justify-evenly h-full ml-auto mr-0">
+                <button
+                  onClick={() => handleEdit(cat)}
+                  className="flex items-center gap-1 bg-gradient-to-br from-blue-700 to-blue-400 text-white text-xs font-semibold px-5 py-2 rounded-md hover:-translate-y-1 transition duration-300"
+                >
+                  <FaEdit />
+                </button>
 
-              <button
-                onClick={() => setDeleteId(cat._id)}
-                className="flex items-center gap-1 bg-gradient-to-br from-red-700 to-red-400 text-white text-xs font-semibold px-5 py-2 rounded-md hover:-translate-y-1 transition duration-300"
-              >
-                <FaTrash /> Delete
-              </button>
-            </div>
-          </motion.div>
-        ))}
+                <button
+                  onClick={() => setDeleteId(cat._id)}
+                  className="flex items-center gap-1 bg-gradient-to-br from-red-700 to-red-400 text-white text-xs font-semibold px-5 py-2 rounded-md hover:-translate-y-1 transition duration-300"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            </motion.div>
+          ))}
 
       </div>
 

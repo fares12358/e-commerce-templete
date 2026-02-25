@@ -88,7 +88,6 @@ export default function ProductDetailsPage() {
         getProductByID(productId),
         getCategories(),
       ]);
-      console.log(p.selections);
 
       if (p?._id) {
         setProduct(p);
@@ -274,15 +273,32 @@ export default function ProductDetailsPage() {
 
 
   /* ================= IMAGES ================= */
-  const handleAddImage = async (file) => {
-    if (!file) return;
+  const handleAddImage = async (files) => {
+    if (!files || files.length === 0) return;
+
+    const currentCount = product.images.length;
+    const remainingSlots = 5 - currentCount;
+
+    if (remainingSlots <= 0) {
+      toast.error("Maximum 5 images allowed");
+      return;
+    }
+
+    const filesArray = Array.from(files).slice(0, remainingSlots);
+
     try {
       setImageLoading(true);
-      const compressed = await compressImage(file);
-      const fd = new FormData();
-      fd.append("image", compressed || file);
-      await addProductImage(productId, fd);
+
+      for (let file of filesArray) {
+        const compressed = await compressImage(file);
+        const fd = new FormData();
+        fd.append("image", compressed || file);
+        await addProductImage(productId, fd);
+      }
+
+      toast.success("Images added");
       fetchData();
+
     } catch {
       toast.error("Add image failed");
     } finally {
@@ -290,16 +306,23 @@ export default function ProductDetailsPage() {
     }
   };
 
-  const handleReplaceImage = async (imageId, file) => {
-    if (!file) return;
+  const handleReplaceImage = async (imageId, files) => {
+    if (!files || files.length === 0) return;
+
+    const file = files[0]; // replace only first selected
     try {
       setImageLoading(true);
+
       const compressed = await compressImage(file);
       const fd = new FormData();
       fd.append("imageId", imageId);
       fd.append("image", compressed || file);
+
       await updateProductImage(productId, fd);
+
+      toast.success("Image replaced");
       fetchData();
+
     } catch {
       toast.error("Replace image failed");
     } finally {
@@ -336,7 +359,7 @@ export default function ProductDetailsPage() {
   /* ================= RENDER ================= */
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
+      <div className="flex justify-center items-center py-20 w-full h-screen">
         <Loader />
       </div>
     );
@@ -358,6 +381,14 @@ export default function ProductDetailsPage() {
           </div>
           Basic Information
         </h2>
+        <div className="flex flex-col gap-2 items-start justify-start">
+          <label htmlFor="id" className="text-lg font-semibold">Product ID</label>
+          <p>{params?.productId}</p>
+        </div>
+        <div className="flex flex-col gap-2 items-start justify-start">
+          <label htmlFor="id" className="text-lg font-semibold">Product Number</label>
+          <p>{product.productNumber}</p>
+        </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="name" className="text-md font-semibold">name</label>
           <input className="border px-3 py-2 w-full rounded-md" value={name} onChange={(e) => setName(e.target.value)} />
@@ -520,7 +551,7 @@ export default function ProductDetailsPage() {
               <button
                 onClick={() => handleUpdateSelection(sel)}
                 disabled={selectionSavingId === sel._id}
-                className="bg-black text-white px-4 py-2 rounded-md text-sm disabled:opacity-60"
+                className="bg-black text-white px-4 py-2 rounded-md text-sm disabled:opacity-60 hover:-translate-y-1 duration-300 ease-in-out"
               >
                 {selectionSavingId === sel._id ? "Saving..." : "Save"}
               </button>
@@ -528,7 +559,7 @@ export default function ProductDetailsPage() {
               <button
                 onClick={() => setDeletingSelectionId(sel._id)}
                 disabled={selectionSavingId === sel._id}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm disabled:opacity-60"
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm disabled:opacity-60 hover:-translate-y-1 duration-300 ease-in-out"
               >
                 Delete
               </button>
@@ -563,7 +594,7 @@ export default function ProductDetailsPage() {
 
             <button
               onClick={() => setNewOptions([...newOptions, ""])}
-              className="text-blue-600 text-sm"
+              className="text-black font-semibold text-sm bg-gradient-to-br from-gray-200 to-gray-50 py-3 px-4 rounded-md shadow-sm hover:-translate-y-1 duration-300 ease-in-out"
             >
               + Add option
             </button>
@@ -572,7 +603,7 @@ export default function ProductDetailsPage() {
               <button
                 disabled={selectionLoading}
                 onClick={handleAddSelection}
-                className="bg-black text-white px-4 py-2 rounded disabled:opacity-60"
+                className="bg-black text-white px-4 py-2 rounded disabled:opacity-60 hover:-translate-y-1 duration-300 ease-in-out"
               >
                 {selectionLoading ? "Saving..." : "Save selection"}
               </button>
@@ -583,7 +614,7 @@ export default function ProductDetailsPage() {
                   setNewSelectionName("");
                   setNewOptions([""]);
                 }}
-                className="bg-gray-300 px-4 py-2 rounded"
+                className="bg-gray-300 px-4 py-2 rounded hover:-translate-y-1 duration-300 ease-in-out"
               >
                 Cancel
               </button>
@@ -617,17 +648,23 @@ export default function ProductDetailsPage() {
 
         <label className={`cursor-pointer flex items-center justify-center gap-2 py-3 px-5 w-fit rounded-md bg-gradient-to-br from-blue-800 to-blue-400 text-white hover:-translate-y-1 transition-all duration-300 ease-in-out  ${imageLoading ? 'opacity-80' : ''} `}>
           {imageLoading ? <> <Loader size={20} color={'#fff'} /> Uploading...</> : <> <FaPlus size={15} />  Add image </>}
-          <input type="file" hidden accept="image/*" onChange={(e) => handleAddImage(e.target.files[0])} />
+          <input type="file" hidden multiple accept="image/*" onChange={(e) => handleAddImage(e.target.files)} />
         </label>
 
         <div className="flex gap-4 flex-wrap">
           {product.images.map((img) => (
             <div key={img._id} className="border p-2 w-32 rounded flex items-center flex-col gap-3">
-              <img src={img.url} className="h-24 w-full object-cover rounded" />
+              <img src={img.url} className="h-24 w-24 object-contain rounded" />
               <div className="flex items-baseline justify-evenly w-full">
-                <label className="block text-xs cursor-pointer text-blue-500 hover:scale-110 transition-all duration-300 ease-in-out">
+                <label className={`block text-xs cursor-pointer text-blue-500 hover:scale-110 transition-all duration-300 ease-in-out`}>
                   <FaPen size={15} />
-                  <input type="file" hidden accept="image/*" onChange={(e) => handleReplaceImage(img._id, e.target.files[0])} />
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => handleReplaceImage(img._id, e.target.files)}
+                  />
                 </label>
                 <button onClick={() => setDeleteImageId(img._id)} className="text-xs text-red-600 cursor-pointer hover:scale-110 transition-all duration-300 ease-in-out"><FaTrash size={15} /></button>
               </div>

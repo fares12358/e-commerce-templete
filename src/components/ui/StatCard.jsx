@@ -34,7 +34,7 @@ export default function StatCard({ title, value, icon, color, index = 0 }) {
       </motion.div>
 
       <p className="text-md text-gray-800 font-semibold">{title}</p>
-      <p className="mt-2 text-2xl font-medium text-black">{value}</p>
+      <p className="mt-2 text-md md:text-2xl font-medium text-black overflow-hidden">{value}</p>
     </motion.div>
   );
 }

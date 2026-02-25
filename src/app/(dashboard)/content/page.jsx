@@ -11,8 +11,11 @@ import {
 import Loader from "@/components/ui/Loader";
 import { toast } from "react-toastify";
 import { FaPlus, FaEdit, FaTrash, FaSave, FaTimes } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ContentManagementPage() {
+    const { contentCache, setContentCache } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -31,6 +34,11 @@ export default function ContentManagementPage() {
     const [termsOfUse, setTermsOfUse] = useState([]);
     const [privacyPolicy, setPrivacyPolicy] = useState([]);
 
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmType, setConfirmType] = useState(null);
+    const [confirmData, setConfirmData] = useState(null);
+    const [confirmLoading, setConfirmLoading] = useState(false);
+
     // Modal States
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState("");
@@ -43,30 +51,43 @@ export default function ContentManagementPage() {
         fetchContent();
     }, []);
 
+    const applyContent = (data) => {
+        const { aboutUs, vision, mission, termsOfUse, privacyPolicy } = data;
+
+        setAboutTitle(aboutUs?.title || "");
+        setAboutDescription(aboutUs?.description || "");
+        setAboutSecondary(aboutUs?.secondaryDescription || "");
+
+        setVisionTitle(vision?.title || "");
+        setVisionDescription(vision?.description || "");
+
+        setMissionTitle(mission?.title || "");
+        setMissionDescription(mission?.description || "");
+
+        setTermsOfUse(termsOfUse || []);
+        setPrivacyPolicy(privacyPolicy || []);
+    };
+
     const fetchContent = async () => {
         try {
             setLoading(true);
+
+            // ✅ Use cache if exists
+            if (contentCache) {
+                applyContent(contentCache);
+                return;
+            }
+
             const res = await getContent();
-            
+
             if (res.success) {
-                const { aboutUs, vision, mission, termsOfUse, privacyPolicy } = res.data;
+                applyContent(res.data);
 
-                setAboutTitle(aboutUs?.title || "");
-                setAboutDescription(aboutUs?.description || "");
-                setAboutSecondary(aboutUs?.secondaryDescription || "");
-
-                setVisionTitle(vision?.title || "");
-                setVisionDescription(vision?.description || "");
-
-                setMissionTitle(mission?.title || "");
-                setMissionDescription(mission?.description || "");
-
-                setTermsOfUse(termsOfUse || []);
-                setPrivacyPolicy(privacyPolicy || []);
+                // 🔥 Save to cache
+                setContentCache(res.data);
             }
         } catch (error) {
-            console.error("Error:", error);
-            toast.error(error.response?.data?.message || "فشل تحميل المحتوى");
+            toast.error(error.response?.data?.message || "Failed to load content");
         } finally {
             setLoading(false);
         }
@@ -99,7 +120,11 @@ export default function ContentManagementPage() {
 
             if (res.success) {
                 toast.success("تم تحديث المحتوى بنجاح");
-                fetchContent();
+                const fresh = await getContent();
+                if (fresh.success) {
+                    applyContent(fresh.data);
+                    setContentCache(fresh.data);
+                }
             } else {
                 toast.error(res.message || "فشل تحديث المحتوى");
             }
@@ -153,8 +178,12 @@ export default function ContentManagementPage() {
                 });
 
                 if (res.success) {
-                    toast.success("تم إضافة القسم بنجاح");
-                    fetchContent();
+                    toast.success("تم تحديث القسم بنجاح");
+                    const fresh = await getContent();
+                    if (fresh.success) {
+                        applyContent(fresh.data);
+                        setContentCache(fresh.data);
+                    }
                     closeModal();
                 } else {
                     toast.error(res.message || "فشل إضافة القسم");
@@ -169,7 +198,13 @@ export default function ContentManagementPage() {
 
                 if (res.success) {
                     toast.success("تم تحديث القسم بنجاح");
-                    fetchContent();
+
+                    const fresh = await getContent();
+                    if (fresh.success) {
+                        applyContent(fresh.data);
+                        setContentCache(fresh.data);
+                    }
+
                     closeModal();
                 } else {
                     toast.error(res.message || "فشل تحديث القسم");
@@ -183,24 +218,48 @@ export default function ContentManagementPage() {
         }
     };
 
-    const handleDeleteSection = async (type, sectionId) => {
-        if (!confirm("هل أنت متأكد من حذف هذا القسم؟")) return;
+    const handleDeleteSection = (type, sectionId) => {
+        setConfirmType("delete");
+        setConfirmData({ type, sectionId });
+        setShowConfirm(true);
+    };
+
+    const handleConfirmAction = async () => {
+        if (!confirmType) return;
 
         try {
-            const res = await deleteContentSection({
-                type,
-                sectionId
-            });
+            setConfirmLoading(true);
 
-            if (res.success) {
-                toast.success("تم حذف القسم بنجاح");
-                fetchContent();
-            } else {
-                toast.error(res.message || "فشل حذف القسم");
+            // DELETE SECTION
+            if (confirmType === "delete") {
+                const { type, sectionId } = confirmData;
+
+                const res = await deleteContentSection({
+                    type,
+                    sectionId,
+                });
+
+                if (res.success) {
+                    toast.success("تم حذف القسم بنجاح");
+                    // 🔥 Force fresh fetch (ignore cache completely)
+                    const fresh = await getContent();
+
+                    if (fresh.success) {
+                        applyContent(fresh.data);
+                        setContentCache(fresh.data);
+                    }
+                } else {
+                    toast.error(res.message || "فشل حذف القسم");
+                }
             }
+
         } catch (error) {
-            console.error("Error:", error);
-            toast.error(error.response?.data?.message || "حدث خطأ أثناء الحذف");
+            toast.error(error.response?.data?.message || "حدث خطأ");
+        } finally {
+            setConfirmLoading(false);
+            setShowConfirm(false);
+            setConfirmType(null);
+            setConfirmData(null);
         }
     };
 
@@ -222,7 +281,7 @@ export default function ContentManagementPage() {
                     {/* About Us */}
                     <div className="border-b pb-6">
                         <h3 className="text-lg font-semibold mb-4">من نحن</h3>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">العنوان</label>
@@ -260,7 +319,7 @@ export default function ContentManagementPage() {
                     {/* Vision */}
                     <div className="border-b pb-6">
                         <h3 className="text-lg font-semibold mb-4">رؤيتنا</h3>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">العنوان</label>
@@ -288,7 +347,7 @@ export default function ContentManagementPage() {
                     {/* Mission */}
                     <div className="border-b pb-6">
                         <h3 className="text-lg font-semibold mb-4">مهمتنا</h3>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">العنوان</label>
@@ -482,6 +541,15 @@ export default function ContentManagementPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={showConfirm}
+                title="تأكيد الحذف"
+                message="هل أنت متأكد من حذف هذا القسم؟"
+                onConfirm={handleConfirmAction}
+                onCancel={() => setShowConfirm(false)}
+                loading={confirmLoading}
+            />
         </div>
     );
 }

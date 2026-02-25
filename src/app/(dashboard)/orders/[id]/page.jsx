@@ -147,39 +147,53 @@ export default function OrderDetailsPage() {
 
   /* ================= WHATSAPP MSG ================= */
   useEffect(() => {
-    if (!order) return
-    const itemsText = order?.items?.map(item => {
-      const attrs = item?.attributes?.map(attr => `${attr.key}: ${attr.value}`)
-        .join(" - ");
+    if (!order) return;
 
-      const itemTotal = item.price * item.quantity;
-
-      return `- ${item.name} (${attrs}) × ${item.quantity} = ${itemTotal} EGP`;
-    }).join("\n");
-
+    const itemsText = order?.items
+      ?.map((item) => {
+        const itemTotal = item.price * item.quantity;
+        return `• ${item.name}\n  الكمية: ${item.quantity}\n  السعر: ${item.price.toLocaleString()} EGP\n  الإجمالي: ${itemTotal.toLocaleString()} EGP`;
+      })
+      .join("\n\n");
 
     setMessage(`
- بنأكد مع حضرتك الطلب رقم: ${order.orderNumber}
-
-🛒 تفاصيل الطلب:
-${itemsText}
-
- الإجمالي: ${order.totalPrice} EGP
- طريقة الدفع: ${order.paymentMethod}
-
- العنوان:
-${order.location.government} - ${order.location.city} - الدور ${order.location.floorNumber}
-${order.location.locationDescription} 
-
- رقم التواصل: ${order.location.phone}
-
-لو كل البيانات صحيحة برجاء التأكيد لنبدأ في التجهيز 
-`)
-
-  }, [order])
+  مرحباً 👋
+  
+  بنأكد مع حضرتك بيانات الطلب رقم:
+  #${order.orderNumber}
+  
+  ━━━━━━━━━━━━━━━━━━
+  🛒 تفاصيل الطلب:
+  ━━━━━━━━━━━━━━━━━━
+  
+  ${itemsText}
+  
+  ━━━━━━━━━━━━━━━━━━
+  💰 إجمالي الطلب:
+  ${order.totalPrice.toLocaleString()} EGP
+  
+  💳 طريقة الدفع:
+  ${order.paymentMethod}
+  
+  ━━━━━━━━━━━━━━━━━━
+  📍 عنوان التوصيل:
+  ━━━━━━━━━━━━━━━━━━
+  المحافظة: ${order.location.government}
+  المدينة: ${order.location.city}
+  شارع: ${order.location.strName}
+  تفاصيل إضافية: ${order.location.locationDescription}
+  
+  📞 رقم التواصل:
+  ${order.location.phone}
+  
+  ━━━━━━━━━━━━━━━━━━
+  
+  في حالة صحة البيانات برجاء تأكيد الطلب للبدء في التجهيز 🚚✨
+  `);
+  }, [order]);
 
   const sendOrderMessage = (phone, msg) => {
-    const whatsappUrl = `https://wa.me/2${phone}?text=${encodeURIComponent(msg)}`;
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     window.open(whatsappUrl, "_blank");
   }
 
@@ -232,7 +246,6 @@ ${order.location.locationDescription}
 
         {order.location?.phone && (
           <div className=" flex items-center justify-center gap-2">
-
             <button
               onClick={() => { sendOrderMessage(order.location?.phone, message) }}
               target="_blank"
@@ -364,7 +377,7 @@ ${order.location.locationDescription}
           >
             {/* Link to product */}
             <div
-              className="absolute top-0 right-0 p-2 cursor-pointer text-blue-500 rounded-bl-md shadow-md"
+              className="absolute top-0 right-0 p-2 cursor-pointer text-blue-500 rounded-bl-md shadow-md bg-white"
               onClick={() => router.push(`/products/${item.productId._id}`)}
             >
               <FaLink />
@@ -384,7 +397,7 @@ ${order.location.locationDescription}
                 <span className="text-gray-800 mr-1">
                   Price:
                 </span>
-                ${item.price}
+                {item.price.toLocaleString()}
               </div>
 
               <div className="text-sm text-gray-600">
@@ -402,7 +415,7 @@ ${order.location.locationDescription}
                       key={attr._id}
                       className="bg-gray-100 px-2 py-1 rounded"
                     >
-                      <span className="text-gray-800 mr-1">
+                      <span className="text-gray-800 ml-2">
                         {attr.key}:
                       </span>
                       {attr.value}
@@ -410,23 +423,20 @@ ${order.location.locationDescription}
                   ))}
                 </div>
               )}
-              {item.description && (
-                <div className="text-sm text-gray-500 flex flex-wrap gap-2">
-                  <span className="text-gray-800 mr-1">
-                    Order Descrption :
-                  </span>
-                  {item.description}
-                </div>
-              )}
-              {item.selections && (
-                item.selections.map((select, index) => (
-                  <div key={index} className="text-sm text-gray-500 flex flex-wrap gap-2">
-                    <span className="text-gray-800 mr-1">
-                      {select.name}
-                    </span>
-                    {select.value}
-                  </div>
-                ))
+              {item.selections.length > 0 && (
+                <>
+                  <div className="text-gray-600 font-bold my-4">selection</div>
+                  {
+                    item.selections.map((select, index) => (
+                      <div key={index} className="text-sm w-fit text-gray-500 flex flex-wrap gap-2 bg-gray-100 px-2 py-1 rounded">
+                        {select.value}
+                        <span className="text-gray-800 mr-1">
+                          :{select.name}
+                        </span>
+                      </div>
+                    ))
+                  }
+                </>
               )}
             </div>
           </motion.div>
@@ -437,17 +447,13 @@ ${order.location.locationDescription}
       {/* ================= TOTAL ================= */}
 
       <div className="bg-white shadow-sm rounded-md p-5 space-y-2">
-        <div className="flex justify-between">
-          <span>Subtotal</span>
-          <span>${order.totalPrice}</span>
+        <div className="flex justify-between font-semibold text-lg">
+          <span>Total</span>
+          <span>{order.totalPrice.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span>Shipping</span>
-          <span>${order.shippingFee}</span>
-        </div>
-        <div className="flex justify-between font-semibold text-lg">
-          <span>Total</span>
-          <span>${order.totalPrice + order.shippingFee}</span>
+          <span>{order.shippingFee}</span>
         </div>
       </div>
 

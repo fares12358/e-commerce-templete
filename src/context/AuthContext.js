@@ -13,9 +13,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       setLoading(true);
-
       const res = await getAdminMe();
-
       if (res.success) {
         setAdmin(res.data);
         setIsAuth(true);
@@ -46,15 +44,35 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [productsCache, setProductsCache] = useState({});
+  const [ordersCache, setOrdersCache] = useState({});
+  const [ads, setAds] = useState([]);
+  const [usersCache, setUsersCache] = useState({});
+  const [adminProfileCache, setAdminProfileCache] = useState(null);
+  const [configCache, setConfigCache] = useState(null);
+  const [contentCache, setContentCache] = useState(null);
   return (
     <AuthContext.Provider
       value={{
         admin,
         setAdmin,
-        isAuth,
+        isAuth, setIsAuth,
         loading,
         checkAuth,
         logout,
+        dashboardStats, setDashboardStats,
+        categories, setCategories,
+        productsCache, setProductsCache,
+        ordersCache, setOrdersCache,
+        ads, setAds,
+        usersCache, setUsersCache,
+        adminProfileCache,
+        setAdminProfileCache,
+        configCache,
+        setConfigCache,
+        contentCache, setContentCache
       }}
     >
       {children}

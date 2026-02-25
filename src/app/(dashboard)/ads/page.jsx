@@ -10,11 +10,15 @@ import {
 import Loader from "@/components/ui/Loader";
 import { toast } from "react-toastify";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { FaBullhorn } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
+import { compressImage } from "@/utils/helper";
 
 export default function AdsPage() {
-  const [ads, setAds] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { ads, setAds } = useAuth()
+  const [loading, setLoading] = useState(false);
   const fileRef = useRef();
+  const tagInputRef = useRef(null);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -34,14 +38,15 @@ export default function AdsPage() {
     try {
       const res = await getAds();
       if (res.success) setAds(res.data);
-    } catch {
-      toast.error("فشل تحميل الإعلانات");
+    } catch (err) {
+      toast.error(err.message || "Failed to load ads");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (ads.length > 0) return
     fetchAds();
   }, []);
 
@@ -59,7 +64,7 @@ export default function AdsPage() {
     e.preventDefault();
 
     if (!title || !description)
-      return toast.error("جميع الحقول مطلوبة");
+      return toast.error("All fields are required");
 
     try {
       setSaving(true);
@@ -73,17 +78,17 @@ export default function AdsPage() {
 
       if (editingId) {
         await updateAd(editingId, formData);
-        toast.success("تم تحديث الإعلان");
+        toast.success("Ad updated successfully");
       } else {
-        if (!image) return toast.error("الصورة مطلوبة");
+        if (!image) return toast.error("Image is required");
         await createAd(formData);
-        toast.success("تم إضافة الإعلان");
+        toast.success("Ad added successfully");
       }
 
       resetForm();
       fetchAds();
-    } catch {
-      toast.error("حدث خطأ");
+    } catch (err) {
+      toast.error(err.message || "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -96,6 +101,19 @@ export default function AdsPage() {
     setTag(ad.tag || "");
     setPreview(ad.image.url);
 
+    // 🔥 Scroll to top (dashboard container)
+    const container = document.getElementById("dashboard-scroll-container");
+    if (container) {
+      container.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+
+    // 🔥 Focus after slight delay (wait for render)
+    setTimeout(() => {
+      tagInputRef.current?.focus();
+    }, 300);
   };
 
   const handleDeleteClick = (id) => {
@@ -107,10 +125,10 @@ export default function AdsPage() {
     try {
       setDeleting(true)
       await deleteAd(deleteId);
-      toast.success("تم حذف الإعلان");
+      toast.success("Ad deleted successfully");
       fetchAds();
-    } catch {
-      toast.error("فشل الحذف");
+    } catch (err) {
+      toast.error(err.message || "Delete failed");
     } finally {
       setDeleting(false)
       setShowConfirm(false);
@@ -121,7 +139,7 @@ export default function AdsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
+      <div className="flex justify-center items-center py-20 h-screen w-full">
         <Loader />
       </div>
     );
@@ -132,36 +150,45 @@ export default function AdsPage() {
 
       {/* ===== FORM ===== */}
       <div className="bg-white p-4 rounded-md shadow-sm">
+
         <h2 className="mb-4 font-medium">
-          {editingId ? "تعديل إعلان" : "إضافة إعلان جديد"}
+          <div
+            className='bg-gradient-to-br from-teal-800 to-teal-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5'
+          >
+            <span className="-rotate-12">
+              <FaBullhorn
+                size={25} className="drop-shadow-md" />
+            </span>
+          </div>
+          {editingId ? "Edit Ad" : "Add New Ad"}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
+            ref={tagInputRef}
             className="border px-3 py-2 w-full rounded-md"
-            placeholder="التصنيف (مثال: عرض خاص)"
+            placeholder="Tag (example: Special Offer)"
             value={tag}
             onChange={(e) => setTag(e.target.value)}
           />
 
           <input
-            dir="rtl"
             className="border px-3 py-2 w-full rounded-md"
-            placeholder="id الخاص بالمنتج"
+            placeholder="Product ID (optional link)"
             value={link}
             onChange={(e) => setLink(e.target.value)}
           />
 
           <input
             className="border px-3 py-2 w-full rounded-md"
-            placeholder="العنوان"
+            placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
 
           <textarea
             className="border px-3 py-2 w-full rounded-md"
-            placeholder="الوصف"
+            placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -171,15 +198,17 @@ export default function AdsPage() {
             ref={fileRef}
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files[0];
-              setImage(file);
+              if (!file) return;
 
-              if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => setPreview(reader.result);
-                reader.readAsDataURL(file);
-              }
+              // Show instant preview
+              setPreview(URL.createObjectURL(file));
+
+              // Compress image before saving
+              const compressed = await compressImage(file, 1600, 1);
+
+              setImage(compressed || file);
             }}
           />
 
@@ -188,14 +217,14 @@ export default function AdsPage() {
             onClick={() => fileRef.current.click()}
             className="border px-4 py-2 rounded-md hover:bg-gray-100 transition w-fit block"
           >
-            {preview ? "تغيير الصورة" : "اختيار صورة الإعلان"}
+            {preview ? "Change Image" : "Select Ad Image"}
 
           </button>
 
           {preview && (
             <img
               src={preview}
-              className="w-40 h-24 object-cover rounded-md border"
+              className="w-24 h-24 object-contain rounded-md border"
             />
           )}
 
@@ -204,7 +233,7 @@ export default function AdsPage() {
               disabled={saving}
               className="bg-black text-white px-4 py-2 rounded-md disabled:opacity-60"
             >
-              {saving ? "جاري الحفظ..." : editingId ? "تحديث" : "إضافة"}
+              {saving ? "Saving..." : editingId ? "Update" : "Add"}
             </button>
 
             <button
@@ -212,7 +241,7 @@ export default function AdsPage() {
               onClick={resetForm}
               className="border px-4 py-2 rounded-md hover:bg-gray-100 transition"
             >
-              إلغاء
+              Cancel
             </button>
           </div>
 
@@ -239,21 +268,22 @@ export default function AdsPage() {
               )}
               <h3 className="font-medium">{ad.title}</h3>
               <p className="text-sm text-gray-600">{ad.description}</p>
+              <p className="text-sm text-gray-600">{ad.link}</p>
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => handleEdit(ad)}
-                className="px-3 py-1 border rounded-md"
+                className="px-4 py-1 rounded-md bg-gradient-to-br from-blue-800 to-blue-400 text-white hover:-translate-y-1 ease-in-out duration-300 transition"
               >
-                تعديل
+                Edite
               </button>
 
               <button
                 onClick={() => handleDeleteClick(ad._id)}
-                className="px-3 py-1 border text-red-600 rounded-md"
+                className="px-4 py-1 rounded-md bg-gradient-to-br from-red-800 to-red-400 text-white hover:-translate-y-1 ease-in-out duration-300 transition"
               >
-                حذف
+                Delete
               </button>
             </div>
           </div>
@@ -261,8 +291,8 @@ export default function AdsPage() {
       </div>
       <ConfirmModal
         open={showConfirm}
-        title="تأكيد الحذف"
-        message="هل أنت متأكد من حذف هذا الإعلان؟"
+        title="Confirm Delete"
+        message="Are you sure you want to delete this ad?"
         onConfirm={confirmDelete}
         onCancel={() => setShowConfirm(false)}
         loading={deleting}
