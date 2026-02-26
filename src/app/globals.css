@@ -3,14 +3,45 @@
 @tailwind utilities;
 
 @keyframes dot-pulse {
-    0%,
-    100% {
-      transform: scale(0);
-      opacity: 0.5;
-    }
-    50% {
-      transform: scale(1);
-      opacity: 1;
-    }
+
+  0%,
+  100% {
+    transform: scale(0);
+    opacity: 0.5;
   }
-  
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes progress {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
+}
+
+.animate-progress {
+  animation: progress 5s linear forwards;
+}

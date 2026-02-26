@@ -1,5 +1,4 @@
 "use client";
-import { motion } from "framer-motion";
 import { useEffect, useState, useMemo } from "react";
 import { getDashboardStats } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
@@ -98,6 +97,8 @@ export default function DashboardPage() {
 
   const trendColor = getTrendColor(stats?.chart?.orders?.orders);
   const incomeTrendColor = getTrendColor(stats?.chart?.income?.income);
+
+
 
   /* ================= LOADING ================= */
 

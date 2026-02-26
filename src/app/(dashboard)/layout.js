@@ -6,17 +6,44 @@ import { useAuth } from "@/context/AuthContext";
 import Loader from "@/components/ui/Loader";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
+import Pusher from "pusher-js";
+import { toast } from "react-toastify";
+import { useNotification } from "@/context/NotificationContext";
 
 export default function DashboardLayout({ children }) {
   const { isAuth, loading } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     if (!loading && !isAuth) {
       router.replace("/auth/login");
     }
   }, [loading, isAuth, router]);
+
+  useEffect(() => {
+    const pusher = new Pusher(
+      '2921dfbbd33e4f6ba8a3',
+      {
+        cluster: 'eu',
+      }
+    );
+
+    const channel = pusher.subscribe("admin-channel");
+
+    channel.bind("new-order", function (data) {
+      showNotification({
+        orderId: data.orderId,
+        orderNumber: data.orderNumber,
+      });
+    });
+
+    return () => {
+      pusher.disconnect();
+    };
+  }, []);
+
 
   if (loading) {
     return (
@@ -34,7 +61,6 @@ export default function DashboardLayout({ children }) {
 
       <div className="flex flex-1 flex-col">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
-
         <main className="flex-1 overflow-y-auto p-4 md:p-6" id="dashboard-scroll-container">
           {children}
         </main>

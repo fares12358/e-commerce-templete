@@ -36,6 +36,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
+      setLoading(true)
       const res = await getCategories();
       if (res.success) setCategories(res.data);
     } catch {

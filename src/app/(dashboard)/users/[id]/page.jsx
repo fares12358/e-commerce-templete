@@ -124,7 +124,7 @@ export default function UserDetailsPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {orders.map((order, i) => (
-            <OrderCard key={order._id} order={order} index={i} />
+            <OrderCard key={order._id} order={order} email={user.email} index={i} />
           ))}
         </div>
       )}

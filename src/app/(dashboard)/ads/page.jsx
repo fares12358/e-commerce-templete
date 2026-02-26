@@ -36,6 +36,7 @@ export default function AdsPage() {
 
   const fetchAds = async () => {
     try {
+      setLoading(true)
       const res = await getAds();
       if (res.success) setAds(res.data);
     } catch (err) {

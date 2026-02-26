@@ -27,7 +27,7 @@ const iconStyles = {
   cancelled: <FaTimesCircle className="drop-shadow-md" />,
 };
 
-export default function OrderCard({ order, index }) {
+export default function OrderCard({ order, index ,email }) {
   const router = useRouter();
 
   return (
@@ -42,6 +42,7 @@ export default function OrderCard({ order, index }) {
       <div className="flex flex-col gap-2">
         <div
           onClick={(e) => {
+            if(email) return
             e.stopPropagation();
             router.push(`/users/${order.userId?._id}`);
           }}
@@ -51,7 +52,7 @@ export default function OrderCard({ order, index }) {
             <FaUser className="text-md" />
           </div>
 
-          {order?.userId?.email || "Unknown user"}
+          {order?.userId?.email || email || "Unknown user"}
         </div>
 
         <div
