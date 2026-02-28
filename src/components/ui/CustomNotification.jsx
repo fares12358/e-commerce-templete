@@ -4,16 +4,18 @@ import { useRouter } from "next/navigation";
 import { useNotification } from "@/context/NotificationContext";
 import { FaShoppingCart, FaTimes } from "react-icons/fa";
 import { useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CustomNotification() {
   const router = useRouter();
   const { notifications, removeNotification } = useNotification();
-
+  const { notificationCache } = useAuth()
   // 🔔 Sound effect
   useEffect(() => {
     if (notifications.length > 0) {
+      if(!notificationCache?.notifySound) return
       const audio = new Audio("/notification.wav");
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     }
   }, [notifications]);
 

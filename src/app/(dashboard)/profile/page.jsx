@@ -7,18 +7,21 @@ import {
     changeAdminPassword,
     getConfig,
     updateConfig,
+    getNotification,
+    updateNotification
 } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
+import { FaBell, FaCog, FaLock, FaUser } from "react-icons/fa";
 
 export default function AdminProfilePage() {
     const { setAdmin, adminProfileCache,
         setAdminProfileCache,
         configCache,
-        setConfigCache } = useAuth();
+        setConfigCache, notificationCache, setNotificationCache } = useAuth();
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [configLoading, setConfigLoading] = useState(false);
@@ -50,6 +53,16 @@ export default function AdminProfilePage() {
     const [telegram, setTelegram] = useState("");
     const [tiktok, setTiktok] = useState("");
 
+    /* ================= notification ================= */
+    const [notificationSetting, setNotificationSetting] = useState({
+        adminChatId: '',
+        telegramEnabled: false,
+        notifyOnNewOrder: false,
+        notifySound: false,
+        sectionNotify: false,
+    });
+    const [notificationLoading, setNotificationLoading] = useState(false);
+
     /* ================= LOAD DATA ================= */
     const fetchProfile = async () => {
         try {
@@ -59,6 +72,7 @@ export default function AdminProfilePage() {
                 setEmail(adminProfileCache.email || "");
                 return;
             }
+            setLoading(true);
 
             const res = await getAdminProfile();
 
@@ -122,13 +136,62 @@ export default function AdminProfilePage() {
         }
     };
 
+    const getNotificationSetting = async () => {
+        try {
+            // ✅ Use cache if exists
+            if (notificationCache) {
+                setNotificationSetting(notificationCache);
+                return;
+            }
+            setLoading(true);
+
+            const res = await getNotification();
+
+            if (res.success) {
+                const data = {
+                    adminChatId: res.data.adminChatId || "",
+                    telegramEnabled: res.data.telegramEnabled || false,
+                    notifyOnNewOrder: res.data.notifyOnNewOrder || false,
+                    notifySound: res.data.notifySound || false,
+                    sectionNotify: res.data.sectionNotify || false,
+                };
+
+                setNotificationSetting(data);
+
+                // 🔥 Save to cache
+                setNotificationCache(data);
+            }
+        } catch (err) {
+            toast.error("Failed to load notification settings");
+        }
+    };
+
+    const updateNotificationSetting = async (e) => {
+        e.preventDefault();
+
+        try {
+            setNotificationLoading(true);
+
+            const res = await updateNotification(notificationSetting);
+
+            if (res.success) {
+                toast.success("تم تحديث إعدادات الإشعارات");
+
+                // 🔥 Update cache immediately
+                setNotificationCache(notificationSetting);
+            }
+        } catch (err) {
+            toast.error("فشل تحديث الإشعارات");
+        } finally {
+            setNotificationLoading(false);
+        }
+    };
+
     useEffect(() => {
         const loadAll = async () => {
-            setLoading(true);
-            await Promise.all([fetchProfile(), fetchConfig()]);
+            await Promise.all([fetchProfile(), fetchConfig(), getNotificationSetting()]);
             setLoading(false);
         };
-
         loadAll();
     }, []);
 
@@ -289,10 +352,20 @@ export default function AdminProfilePage() {
 
     /* ================= UI ================= */
     return (
-        <div className="space-y-8 max-w-2xl">
+        <div className="space-y-8 max-w-full rounded-md shadow-sm mx-auto">
             {/* ================= PROFILE ================= */}
             <div className="bg-white shadow-sm rounded-md p-4">
-                <h2 className="mb-4 font-medium">بيانات الحساب</h2>
+                <h2 className="mb-4 font-medium">
+                    <div
+                        className='bg-gradient-to-br from-blue-800 to-blue-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5'
+                    >
+                        <span className="-rotate-12">
+                            <FaUser
+                                size={25} className="drop-shadow-md" />
+                        </span>
+                    </div>
+                    بيانات الحساب
+                </h2>
 
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
                     <input
@@ -312,12 +385,14 @@ export default function AdminProfilePage() {
                     />
 
                     <button
+                        type="submit"
                         disabled={submitting}
-                        className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md flex gap-2 disabled:opacity-60 hover:-translate-y-1 transition-all duration-300 ease-in-out"
+                        className="bg-gradient-to-br w-full justify-center hover:-translate-y-1 from-black to-black/70 text-white px-4 py-2 rounded-md flex items-center gap-2 disabled:opacity-60 transition-all duration-300 ease-in-out"
                     >
                         {submitting ? (
                             <>
-                                <Loader size={16} color="#fff" /> جاري الحفظ
+                                <Loader size={16} color="#fff" />
+                                جاري الحفظ...
                             </>
                         ) : (
                             "حفظ التعديلات"
@@ -328,7 +403,17 @@ export default function AdminProfilePage() {
 
             {/* ================= PASSWORD ================= */}
             <div className="bg-white shadow-sm rounded-md p-4">
-                <h2 className="mb-4 font-medium">تغيير كلمة المرور</h2>
+                <h2 className="mb-4 font-medium">
+                    <div
+                        className='bg-gradient-to-br from-gray-800 to-gray-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5'
+                    >
+                        <span className="-rotate-12">
+                            <FaLock
+                                size={25} className="drop-shadow-md" />
+                        </span>
+                    </div>
+                    تغيير كلمة المرور
+                </h2>
 
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                     <input
@@ -356,12 +441,14 @@ export default function AdminProfilePage() {
                     />
 
                     <button
+                        type="submit"
                         disabled={passwordLoading}
-                        className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md flex gap-2 disabled:opacity-60 hover:-translate-y-1 transition-all duration-300 ease-in-out"
+                        className="bg-gradient-to-br w-full justify-center duration-300 ease-in-out hover:-translate-y-1 from-black to-black/70 text-white px-4 py-2 rounded-md flex items-center gap-2 disabled:opacity-60 transition-all"
                     >
                         {passwordLoading ? (
                             <>
-                                <Loader size={16} color="#fff" /> جاري التحديث
+                                <Loader size={16} color="#fff" />
+                                جاري التحديث...
                             </>
                         ) : (
                             "تغيير كلمة المرور"
@@ -370,9 +457,124 @@ export default function AdminProfilePage() {
                 </form>
             </div>
 
+            {/* ================= notifaction ================= */}
+            <div className="bg-white shadow-sm rounded-md p-4">
+                <h2 className="mb-4 font-medium">
+                    <div
+                        className='bg-gradient-to-br from-fuchsia-800 to-fuchsia-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5'
+                    >
+                        <span className="-rotate-12">
+                            <FaBell
+                                size={25} className="drop-shadow-md" />
+                        </span>
+                    </div>
+                    اعدادات الاشعارات
+                </h2>
+
+                <form onSubmit={updateNotificationSetting} className="space-y-6">
+
+                    {/* Admin Chat ID */}
+                    <div className="flex flex-col gap-2">
+                        <label>Admin Chat ID</label>
+                        <input
+                            type="text"
+                            className="border px-3 py-2 w-full rounded-md"
+                            value={notificationSetting.adminChatId}
+                            onChange={(e) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    adminChatId: e.target.value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* Telegram Enabled */}
+                    <div className="flex items-center justify-between">
+                        <span>Enable Telegram</span>
+                        <Switch
+                            checked={notificationSetting.telegramEnabled}
+                            onChange={(value) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    telegramEnabled: value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* Notify On New Order */}
+                    <div className="flex items-center justify-between">
+                        <span>Notify On New Order</span>
+                        <Switch
+                            checked={notificationSetting.notifyOnNewOrder}
+                            onChange={(value) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    notifyOnNewOrder: value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* Notification Sound */}
+                    <div className="flex items-center justify-between">
+                        <span>Notification Sound</span>
+                        <Switch
+                            checked={notificationSetting.notifySound}
+                            onChange={(value) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    notifySound: value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* Section Notify */}
+                    <div className="flex items-center justify-between">
+                        <span>Section Notification</span>
+                        <Switch
+                            checked={notificationSetting.sectionNotify}
+                            onChange={(value) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    sectionNotify: value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={notificationLoading}
+                        className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md w-full flex items-center justify-center gap-2 disabled:opacity-60 duration-300 hover:-translate-y-1 transition-all"
+                    >
+                        {notificationLoading ? (
+                            <>
+                                <Loader size={16} color="#fff" />
+                                جاري الحفظ...
+                            </>
+                        ) : (
+                            "حفظ إعدادات الإشعارات"
+                        )}
+                    </button>
+                </form>
+            </div>
+
             {/* ================= CONFIG ================= */}
             <div className="bg-white shadow-sm rounded-md p-4">
-                <h2 className="mb-4 font-medium">إعدادات النظام</h2>
+                <h2 className="mb-4 font-medium">
+                    <div
+                        className='bg-gradient-to-br from-teal-800 to-teal-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5'
+                    >
+                        <span className="-rotate-12">
+                            <FaCog
+                                size={25} className="drop-shadow-md" />
+                        </span>
+                    </div>
+                    إعدادات النظام
+                </h2>
 
                 <form onSubmit={handleConfigUpdate} className="space-y-4">
                     {/* VAT */}
@@ -564,12 +766,14 @@ export default function AdminProfilePage() {
                     </div>
 
                     <button
+                        type="submit"
                         disabled={configLoading}
-                        className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md flex gap-2 disabled:opacity-60 hover:-translate-y-1 transition-all"
+                        className="bg-gradient-to-br w-full justify-center duration-300 ease-in-out hover:-translate-y-1 from-black to-black/70 text-white px-4 py-2 rounded-md flex items-center gap-2 disabled:opacity-60 transition-all"
                     >
                         {configLoading ? (
                             <>
-                                <Loader size={16} color="#fff" /> جاري الحفظ
+                                <Loader size={16} color="#fff" />
+                                جاري الحفظ...
                             </>
                         ) : (
                             "حفظ الإعدادات"
@@ -580,3 +784,19 @@ export default function AdminProfilePage() {
         </div>
     );
 }
+
+const Switch = ({ checked, onChange }) => {
+    return (
+        <button
+            type="button"
+            onClick={() => onChange(!checked)}
+            className={`w-12 h-6 flex items-center rounded-full p-1 transition-all duration-300 ${checked ? "bg-green-500" : "bg-gray-300"
+                }`}
+        >
+            <div
+                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${checked ? "translate-x-6" : "translate-x-0"
+                    }`}
+            />
+        </button>
+    );
+};

@@ -155,22 +155,6 @@ export const updateProductBasic = async (id, payload) => {
     return res.data;
 };
 
-// ATTRIBUTES
-export const addProductAttribute = async (productId, payload) => {
-    const res = await api.post(`/admin/products/attributes/${productId}`, payload);
-    return res.data;
-};
-
-export const updateProductAttribute = async (productId, payload) => {
-    const res = await api.put(`/admin/products/attributes/${productId}`, payload);
-    return res.data;
-};
-
-export const deleteProductAttribute = async (productId, attributeId) => {
-    const res = await api.delete(`/admin/products/attributes/${productId}/${attributeId}`);
-    return res.data;
-};
-
 // IMAGES
 export const addProductImage = async (productId, payload) => {
     const res = await api.post(`/admin/products/images/${productId}`, payload);
@@ -203,8 +187,8 @@ export const getOrderStats = async () => {
 export const updateOrderStatus = async (id, status) => {
     return api.patch(`/orders/${id}/status`, { status });
 };
-export const cancelOrderAdmin = async (id) => {
-    return api.patch(`/orders/${id}/cancel`);
+export const cancelOrderAdmin = async (id,payload) => {
+    return api.patch(`/orders/${id}/cancel`,payload);
 };
 
 /* ================= USERS ================= */
@@ -260,3 +244,8 @@ export const updateContentSection = async (data) => api.put('/admin/content/sect
 // Delete Section (Admin - Terms/Privacy)
 export const deleteContentSection = async (data) =>  api.delete('/admin/content/section', { data });
  
+/* ================= notification ================= */
+
+export const getNotification = async () =>  api.get('/admin/notification');
+export const updateNotification = async (data) =>  api.put('/admin/notification', data);
+

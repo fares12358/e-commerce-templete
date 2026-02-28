@@ -56,11 +56,11 @@ export default function UsersPage() {
 
   /* ================= FETCH ================= */
 
-  const fetchUsers = async (isFilter = false) => {
+  const fetchUsers = async (isFilter = false,cache=true) => {
     const key = generateKey(filters);
 
     // ✅ Return from cache if exists
-    if (usersCache[key]) {
+    if (usersCache[key] && cache) {
       setUsers(usersCache[key]);
       return;
     }
@@ -123,7 +123,7 @@ export default function UsersPage() {
       await toggleUserStatus(user._id);
       toast.success("User updated");
       setUsersCache({});
-      fetchUsers();
+      fetchUsers(false,false);
     } catch {
       toast.error("Update failed");
     } finally {
@@ -219,7 +219,7 @@ export default function UsersPage() {
           No users found
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {
             filterLoading ?
               <div className="w-full min-h-[50vh] col-span-3 flex items-center justify-center">

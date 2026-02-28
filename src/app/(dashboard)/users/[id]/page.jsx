@@ -104,7 +104,7 @@ export default function UserDetailsPage() {
 
       {/* ================= STATS ================= */}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
 
         <StatCard title="Total" value={stats.total} icon={<FaBoxOpen />} color="from-gray-700 to-gray-400" />
         <StatCard title="Pending" value={stats.pending} icon={<FaClock />} color="from-yellow-700 to-yellow-400" />

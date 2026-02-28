@@ -210,7 +210,7 @@ export default function OrdersPage() {
   return (
     <div className="space-y-8 max-w-full">
       {/* ================= STATS ================= */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard
           title="Total"
           value={stats?.total || 0}

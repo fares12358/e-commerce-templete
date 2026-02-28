@@ -10,6 +10,9 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   loading = false,
+  showResetOption = false,
+  resetValue,
+  setResetValue,
 }) {
   if (!open) return null;
 
@@ -30,7 +33,20 @@ export default function ConfirmModal({
         >
           <h3 className="text-lg font-medium mb-2">{title}</h3>
           <p className="text-sm text-gray-600 mb-6">{message}</p>
-
+          {/* Reset Checkbox */}
+          {showResetOption && (
+            <div className="flex items-center gap-2 my-4">
+              <input
+                type="checkbox"
+                checked={resetValue}
+                onChange={(e) => setResetValue(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label className="text-sm text-gray-600">
+                Reset stock (return products to inventory)
+              </label>
+            </div>
+          )}
           <div className="flex justify-end gap-3">
             <button
               disabled={loading}

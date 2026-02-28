@@ -14,7 +14,6 @@ import { toast } from "react-toastify";
 import {
   FaUser,
   FaWhatsapp,
-  FaBox,
   FaTruck,
   FaTimesCircle,
   FaArrowLeft,
@@ -71,6 +70,8 @@ export default function OrderDetailsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [message, setMessage] = useState('')
+  const [resetStock, setResetStock] = useState(true);
+
   /* ================= FETCH ================= */
 
   const fetchOrder = async () => {
@@ -106,6 +107,7 @@ export default function OrderDetailsPage() {
 
 
   const confirmCancelOrder = () => {
+    setResetStock(true);
     setConfirmAction({
       type: "cancel",
       title: "Cancel Order",
@@ -123,7 +125,7 @@ export default function OrderDetailsPage() {
       }
 
       if (confirmAction.type === "cancel") {
-        await cancelOrderAdmin(order._id);
+        await cancelOrderAdmin(order._id, { reset: resetStock });
         toast.success("Order cancelled");
       }
 
@@ -487,6 +489,9 @@ export default function OrderDetailsPage() {
         loading={actionLoading}
         onCancel={() => setConfirmAction(null)}
         onConfirm={handleConfirmAction}
+        showResetOption={confirmAction?.type === "cancel"}
+        resetValue={resetStock}
+        setResetValue={setResetStock}
       />
     </div>
   );
