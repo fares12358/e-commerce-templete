@@ -155,6 +155,23 @@ export const updateProductBasic = async (id, payload) => {
     return res.data;
 };
 
+
+// ATTRIBUTES
+export const addProductAttribute = async (productId, payload) => {
+    const res = await api.post(`/admin/products/attributes/${productId}`, payload);
+    return res.data;
+};
+
+export const updateProductAttribute = async (productId, payload) => {
+    const res = await api.put(`/admin/products/attributes/${productId}`, payload);
+    return res.data;
+};
+
+export const deleteProductAttribute = async (productId, attributeId) => {
+    const res = await api.delete(`/admin/products/attributes/${productId}/${attributeId}`);
+    return res.data;
+};
+
 // IMAGES
 export const addProductImage = async (productId, payload) => {
     const res = await api.post(`/admin/products/images/${productId}`, payload);
