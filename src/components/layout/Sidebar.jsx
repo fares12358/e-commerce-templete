@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { FaBullhorn, FaDolly, FaSignOutAlt, FaStore, FaTags, FaThLarge, FaUser, FaUserCog } from "react-icons/fa";
+import { FaBullhorn, FaDolly, FaSignOutAlt, FaStore, FaTags, FaThLarge, FaUser, FaUserCog, FaUserShield } from "react-icons/fa";
 import ConfirmModal from "../ui/ConfirmModal";
 import { useState } from "react";
 const links = [
@@ -24,7 +24,16 @@ export default function Sidebar({ open, onClose }) {
 
   const SidebarContent = (
     <div className="h-full w-64 bg-white border-r border-gray-200 p-4 flex flex-col">
-      <h2 className="mb-8 text-lg font-semibold">Admin</h2>
+      <h2 className="mb-8 text-lg font-semibold flex items-center gap-2">
+        <div
+          className='bg-gradient-to-br from-blue-800 to-purple-400 shadow-md text-white rotate-12 size-10 flex items-center justify-center rounded-xl'
+        >
+          <span className="-rotate-12">
+            <FaUserShield size={20} className="drop-shadow-md" />
+          </span>
+        </div>
+        Admin Dashboard
+      </h2>
 
       <nav className="flex-1 space-y-1">
         {links.map((link) => {

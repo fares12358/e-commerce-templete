@@ -279,7 +279,7 @@ export default function ContentManagementPage() {
 
                 <form onSubmit={handleSaveMainContent} className="space-y-6">
                     {/* About Us */}
-                    <div className="border-b pb-6">
+                    <div className="border-b border-black pb-6">
                         <h3 className="text-lg font-semibold mb-4">من نحن</h3>
 
                         <div className="space-y-4">
@@ -317,7 +317,7 @@ export default function ContentManagementPage() {
                     </div>
 
                     {/* Vision */}
-                    <div className="border-b pb-6">
+                    <div className="border-b pb-6 border-black">
                         <h3 className="text-lg font-semibold mb-4">رؤيتنا</h3>
 
                         <div className="space-y-4">
@@ -345,7 +345,7 @@ export default function ContentManagementPage() {
                     </div>
 
                     {/* Mission */}
-                    <div className="border-b pb-6">
+                    <div className="pb-6">
                         <h3 className="text-lg font-semibold mb-4">مهمتنا</h3>
 
                         <div className="space-y-4">

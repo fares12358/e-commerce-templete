@@ -73,7 +73,7 @@ export default function OrderCard({ order, index ,email }) {
       </span>
 
       {/* Price + arrow */}
-      <div className="flex items-center justify-evenly gap-2 h-full w-fit flex-col mx-auto md:ml-auto md:mr-0">
+      <div className="flex items-center justify-evenly gap-2 h-full w-fit flex-col mx-auto sm:ml-auto sm:mr-0">
 
         <div className="relative inline-flex items-center hover:-translate-y-1 transition-all duration-300 ease-in-out cursor-default">
           {/* Frosted glass layer */}

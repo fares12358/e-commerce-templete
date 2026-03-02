@@ -5,7 +5,7 @@ import { getUsers, toggleUserStatus } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
 import UserCard from "@/components/users/UserCard";
 import { toast } from "react-toastify";
-import { FaFilter } from "react-icons/fa";
+import { FaFilter, FaSyncAlt } from "react-icons/fa";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useAuth } from "@/context/AuthContext";
 const generateKey = (filters) => {
@@ -39,11 +39,13 @@ const getVisiblePages = (current, total) => {
   return pages;
 };
 export default function UsersPage() {
-  const { usersCache, setUsersCache} = useAuth()
+  const { usersCache, setUsersCache } = useAuth()
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusLoadingId, setStatusLoadingId] = useState(null);
   const [filterLoading, setFilterLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false);
+
   // actual applied filters
   const [filters, setFilters] = useState({
     email: "",
@@ -56,7 +58,7 @@ export default function UsersPage() {
 
   /* ================= FETCH ================= */
 
-  const fetchUsers = async (isFilter = false,cache=true) => {
+  const fetchUsers = async (isFilter = false, cache = true) => {
     const key = generateKey(filters);
 
     // ✅ Return from cache if exists
@@ -66,8 +68,11 @@ export default function UsersPage() {
     }
 
     try {
-      if (isFilter) setFilterLoading(true);
-      else setLoading(true);
+      if (isFilter) {
+        setFilterLoading(true);
+      } else if (!refreshing) {
+        setLoading(true);
+      }
 
       const res = await getUsers({
         email: filters.email || undefined,
@@ -89,8 +94,11 @@ export default function UsersPage() {
     } catch {
       toast.error("Failed to load users");
     } finally {
-      if (isFilter) setFilterLoading(false);
-      else setLoading(false);
+      if (isFilter) {
+        setFilterLoading(false);
+      } else if (!refreshing) {
+        setLoading(false);
+      }
     }
   };
 
@@ -110,7 +118,12 @@ export default function UsersPage() {
   };
 
   const clearFilters = () => {
-    const clean = { email: "", isActive: "" };
+    const clean = {
+      email: "",
+      isActive: "",
+      sort: "desc",
+      page: 1,
+    };
     setTempFilters(clean);
     setFilters(clean);
   };
@@ -123,11 +136,23 @@ export default function UsersPage() {
       await toggleUserStatus(user._id);
       toast.success("User updated");
       setUsersCache({});
-      fetchUsers(false,false);
+      fetchUsers(false, false);
     } catch {
       toast.error("Update failed");
     } finally {
       setStatusLoadingId(null);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setUsersCache({});
+    try {
+      await fetchUsers(false, false); // force real request
+      toast.success("Users refreshed");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -144,7 +169,7 @@ export default function UsersPage() {
 
   /* ================= LOADING ================= */
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <div className="flex justify-center items-center py-20 h-full w-full">
         <Loader />
@@ -194,7 +219,6 @@ export default function UsersPage() {
           ]}
         />
         <div className="w-fit flex items-center gap-4">
-
           <button
             onClick={applyFilters}
             className="flex items-center justify-center gap-2 bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md hover:-translate-y-1 transition duration-300 ease-in-out"
@@ -202,7 +226,6 @@ export default function UsersPage() {
             <FaFilter />
             Apply
           </button>
-
           <button
             onClick={clearFilters}
             className="border px-4 py-2 rounded-md hover:bg-gray-50 hover:-translate-y-1 transition duration-300 ease-in-out"
@@ -213,8 +236,14 @@ export default function UsersPage() {
 
       </div>
 
+      <div className="w-full flex items-center justify-end">
+        <button onClick={handleRefresh} disabled={refreshing} className="ml-auto mr-0 bg-gradient-to-br from-cyan-600 to-cyan-300 p-3 w-fit rounded-md text-white cursor-pointer group">
+          <FaSyncAlt className={`${refreshing ? 'animate-spin' : ''} group-hover:rotate-180 duration-300 ease-in-out`} />
+        </button>
+      </div>
+
       {/* USERS GRID */}
-      {users.length === 0 ? (
+      {users?.users?.length === 0 ? (
         <div className="text-center text-gray-500 py-10 bg-white rounded-md border font-medium">
           No users found
         </div>
@@ -226,7 +255,7 @@ export default function UsersPage() {
                 <Loader size={30} />
               </div>
               :
-              users.map((u) => (
+              users?.users?.map((u) => (
                 <UserCard
                   key={u._id}
                   user={u}

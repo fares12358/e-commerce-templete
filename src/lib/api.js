@@ -204,8 +204,8 @@ export const getOrderStats = async () => {
 export const updateOrderStatus = async (id, status) => {
     return api.patch(`/orders/${id}/status`, { status });
 };
-export const cancelOrderAdmin = async (id,payload) => {
-    return api.patch(`/orders/${id}/cancel`,payload);
+export const cancelOrderAdmin = async (id, payload) => {
+    return api.patch(`/orders/${id}/cancel`, payload);
 };
 
 /* ================= USERS ================= */
@@ -222,8 +222,8 @@ export const toggleUserStatus = async (id) => {
     return api.patch(`/users/${id}/toggle-status`);
 };
 
-export const getUserDetails = async (id) => {
-    return api.get(`/users/${id}`);
+export const getUserDetails = async (id, page = 1) => {
+    return api.get(`/users/${id}?page=${page}`);
 };
 
 /* ================= ADS ================= */
@@ -250,19 +250,19 @@ export const deleteAd = async (id) =>
 export const getContent = async () => api.get('/admin/content');
 
 // Update Main Content (Admin - About, Vision, Mission)
-export const updateMainContent = async (data) =>  api.put('/admin/content/main', data);
-  
+export const updateMainContent = async (data) => api.put('/admin/content/main', data);
+
 // Add Section (Admin - Terms/Privacy)
-export const addContentSection = async (data) =>  api.post('/admin/content/section', data);
+export const addContentSection = async (data) => api.post('/admin/content/section', data);
 
 // Update Section (Admin - Terms/Privacy)
 export const updateContentSection = async (data) => api.put('/admin/content/section', data);
 
 // Delete Section (Admin - Terms/Privacy)
-export const deleteContentSection = async (data) =>  api.delete('/admin/content/section', { data });
- 
+export const deleteContentSection = async (data) => api.delete('/admin/content/section', { data });
+
 /* ================= notification ================= */
 
-export const getNotification = async () =>  api.get('/admin/notification');
-export const updateNotification = async (data) =>  api.put('/admin/notification', data);
+export const getNotification = async () => api.get('/admin/notification');
+export const updateNotification = async (data) => api.put('/admin/notification', data);
 

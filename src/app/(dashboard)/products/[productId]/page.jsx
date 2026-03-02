@@ -416,7 +416,7 @@ export default function ProductDetailsPage() {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="stock" className="text-md font-semibold">stock</label>
-            <input type="number" className="border px-3 py-2 rounded-md" value={stock} onChange={(e) => setStock(e.target.value)} />
+            <input type="number" className={`px-3 py-2 rounded-md ${stock > 0 ? 'border' : 'border-2 border-red-600'}`} value={stock} onChange={(e) => setStock(e.target.value)} />
           </div>
         </div>
 
@@ -436,7 +436,6 @@ export default function ProductDetailsPage() {
             ]}
           />
         </div>
-
 
         <label className="flex gap-2 text-sm">
           <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />

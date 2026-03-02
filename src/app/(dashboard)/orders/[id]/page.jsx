@@ -27,6 +27,7 @@ import {
   FaPhone,
   FaLocationArrow,
 } from "react-icons/fa";
+import Link from "next/link";
 
 /* ================= STATUS FLOW ================= */
 
@@ -235,7 +236,8 @@ export default function OrderDetailsPage() {
               <FaUser className="drop-shadow-md" size={30} />
             </span>
           </div>
-          <div>
+          <div className="flex flex-col">
+            <Link href={`/users/${order.userId._id}`} className="text-blue-400 cursor-pointer backdrop-blur-sm bg-blue-50 p-2 w-fit rounded-md mb-px drop-shadow-sm"><FaLink /></Link>
             <div className="font-medium">{order.userId?.name}</div>
             <div className="text-sm text-gray-600">
               {order.userId?.email}

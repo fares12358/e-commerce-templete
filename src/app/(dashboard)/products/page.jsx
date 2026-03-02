@@ -18,6 +18,7 @@ import {
   FaTimes,
   FaImage,
   FaFilter,
+  FaSyncAlt,
 } from "react-icons/fa";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +28,7 @@ const generateKey = (filters) => {
     categoryId: filters.categoryId,
     isActive: filters.isActive,
     productNumber: filters.productNumber,
+    stockStatus: filters.stockStatus,
     sort: filters.sort,
     page: filters.page,
   });
@@ -70,6 +72,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false);
 
   const [filters, setFilters] = useState({
     categoryId: "",
@@ -77,8 +80,8 @@ export default function ProductsPage() {
     sort: "newest",
     productNumber: "",
     page: 1,
+    stockStatus: "",
   });
-
 
   const [tempFilters, setTempFilters] = useState(filters);
 
@@ -98,18 +101,21 @@ export default function ProductsPage() {
   ]);
 
   /* ================= FETCH ================= */
-  const fetchAll = async (isFilter = false) => {
+  const fetchAll = async (isFilter = false, force = false) => {
     const key = generateKey(filters);
 
     // ✅ If cached → use it
-    if (productsCache[key]) {
+    if (!force && productsCache[key]) {
       setProducts(productsCache[key]);
       return;
     }
 
     try {
-      if (isFilter) setFilterLoading(true);
-      else setLoading(true);
+      if (isFilter) {
+        setFilterLoading(true);
+      } else if (!refreshing) {
+        setLoading(true);
+      }
 
       const sortMap = {
         newest: { sortBy: "createdAt", order: "desc" },
@@ -124,6 +130,7 @@ export default function ProductsPage() {
         categoryId: filters.categoryId || undefined,
         isActive: filters.isActive || undefined,
         productNumber: filters.productNumber || undefined,
+        stockStatus: filters.stockStatus || undefined,
         sortBy: sortParams.sortBy,
         order: sortParams.order,
         page: filters.page || 1,
@@ -141,8 +148,11 @@ export default function ProductsPage() {
     } catch {
       toast.error("Failed to load products");
     } finally {
-      if (isFilter) setFilterLoading(false);
-      else setLoading(false);
+      if (isFilter) {
+        setFilterLoading(false);
+      } else if (!refreshing) {
+        setLoading(false);
+      }
     }
   };
 
@@ -262,7 +272,6 @@ export default function ProductsPage() {
       )
     );
 
-
     images.forEach((img) => formData.append("images", img.file));
 
     try {
@@ -308,11 +317,24 @@ export default function ProductsPage() {
     fetchAll(false);
   }, []);
 
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setProductsCache({});
+    try {
+      await fetchAll(false, true);
+      toast.success("Products refreshed");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchAll(true);
   }, [filters]);
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <div className="flex justify-center items-center py-20 h-full w-full">
         <Loader />
@@ -483,8 +505,6 @@ export default function ProductsPage() {
             </button>
           </div>
 
-
-
           <button disabled={submitting} className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-3 rounded-md hover:-translate-y-1 transition duration-300 md:col-span-2">
             {submitting ? "Creating..." : "Create Product"}
           </button>
@@ -547,6 +567,20 @@ export default function ProductsPage() {
             { label: "Price high → low", value: "priceDesc" },
           ]}
         />
+
+        <CustomSelect
+          placeholder="Stock"
+          value={tempFilters.stockStatus}
+          onChange={(val) =>
+            setTempFilters({ ...tempFilters, stockStatus: val })
+          }
+          options={[
+            { label: "All", value: "" },
+            { label: "In Stock", value: "instock" },
+            { label: "Out of Stock", value: "outstock" },
+          ]}
+        />
+
         <div className="w-fit flex items-center gap-4">
 
           <button
@@ -565,6 +599,7 @@ export default function ProductsPage() {
                 productNumber: "",
                 sort: "newest",
                 page: 1,
+                stockStatus: "",
               };
               setTempFilters(clean);
               setFilters(clean);
@@ -577,8 +612,11 @@ export default function ProductsPage() {
 
 
       </div>
-
-
+      <div className="flex w-full justify-end items-center">
+        <button onClick={handleRefresh} disabled={refreshing} className="bg-gradient-to-br from-cyan-600 to-cyan-300 p-3 w-fit rounded-md text-white cursor-pointer group">
+          <FaSyncAlt className={`${refreshing ? 'animate-spin' : ''} group-hover:rotate-180 duration-300 ease-in-out`} />
+        </button>
+      </div>
       {/* ================= PRODUCTS GRID ================= */}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -603,9 +641,10 @@ export default function ProductsPage() {
                     <img src={p.images?.[0]?.url} className="w-full h-full object-cover" />
                   </div>
 
-                  <div className="p-3 space-y-1">
+                  <div className="p-3 space-y-1 flex flex-col gap-2">
                     <div className="font-medium truncate line-clamp-2">{p.name}</div>
                     <div className="text-sm text-gray-600 line-clamp-2">{p.categoryId.name}</div>
+                    <div className={`text-sm ${p.stock > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}  font-bold w-fit rounded py-1 px-2`}>stock {p.stock}</div>
                     <div className="font-semibold">{p.price.toLocaleString()}</div>
                   </div>
                 </motion.div>
@@ -640,8 +679,8 @@ export default function ProductsPage() {
                 key={page}
                 onClick={() => setFilters({ ...filters, page })}
                 className={`px-3 py-1 border rounded ${page === products.pagination.page
-                    ? "bg-black text-white"
-                    : ""
+                  ? "bg-black text-white"
+                  : ""
                   }`}
               >
                 {page}

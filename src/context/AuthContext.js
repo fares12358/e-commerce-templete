@@ -92,6 +92,8 @@ export const AuthProvider = ({ children }) => {
   const [configCache, setConfigCache] = useState(null);
   const [contentCache, setContentCache] = useState(null);
   const [notificationCache, setNotificationCache] = useState(null);
+  const [userOrdersCache, setUserOrdersCache] = useState({});
+
   return (
     <AuthContext.Provider
       value={{
@@ -112,7 +114,8 @@ export const AuthProvider = ({ children }) => {
         configCache,
         setConfigCache,
         contentCache, setContentCache,
-        notificationCache, setNotificationCache
+        notificationCache, setNotificationCache,
+        userOrdersCache, setUserOrdersCache
       }}
     >
       {children}

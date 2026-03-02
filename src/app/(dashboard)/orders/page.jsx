@@ -19,6 +19,7 @@ import {
   FaFilter,
   FaTruck,
   FaTimesCircle,
+  FaSyncAlt,
 } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
 
@@ -94,6 +95,7 @@ export default function OrdersPage() {
   const router = useRouter();
   const { ordersCache, setOrdersCache } = useAuth()
 
+  const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -112,11 +114,11 @@ export default function OrdersPage() {
 
   /* ================= FETCH ================= */
 
-  const fetchAll = async (isFilter = false) => {
+  const fetchAll = async (isFilter = false, force = false) => {
     const key = generateKey(filters);
 
     // 🔥 If cached → use it
-    if (ordersCache[key]) {
+    if (!force && ordersCache[key]) {
       setOrders(ordersCache[key].orders);
       setStats(ordersCache[key].stats);
       return;
@@ -125,7 +127,7 @@ export default function OrdersPage() {
     try {
       if (isFilter) {
         setFilterLoading(true);
-      } else {
+      } else if (!refreshing) {
         setLoading(true);
       }
 
@@ -153,9 +155,21 @@ export default function OrdersPage() {
     } finally {
       if (isFilter) {
         setFilterLoading(false);
-      } else {
+      } else if (!refreshing) {
         setLoading(false);
       }
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setOrdersCache({});
+    try {
+      await fetchAll(false, true);
+      toast.success("Orders refreshed");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -199,7 +213,7 @@ export default function OrdersPage() {
     }
   }, [filters.page]);
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <div className="flex justify-center items-center py-20 h-full w-full">
         <Loader />
@@ -254,7 +268,11 @@ export default function OrdersPage() {
           index={4}
         />
       </div>
-
+      <div className="w-full flex items-center justify-end">
+        <button onClick={handleRefresh} disabled={refreshing} className="ml-auto mr-0 bg-gradient-to-br from-cyan-600 to-cyan-300 p-3 w-fit rounded-md text-white cursor-pointer group">
+          <FaSyncAlt className={`${refreshing ? 'animate-spin' : ''} group-hover:rotate-180 duration-300 ease-in-out`} />
+        </button>
+      </div>
       {/* ================= FILTER BAR ================= */}
 
       <div className="bg-white shadow-sm rounded-md p-4 flex flex-wrap gap-3 items-center w-full">

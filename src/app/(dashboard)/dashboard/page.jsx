@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getDashboardStats } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
 import StatCard from "@/components/ui/StatCard";
-import { FaBoxOpen, FaChartLine, FaUser, FaHourglassStart } from "react-icons/fa";
+import { FaBoxOpen, FaChartLine, FaUser, FaHourglassStart, FaSyncAlt } from "react-icons/fa";
 import OrderCard from "@/components/orders/OrderCard";
 import { Line } from "react-chartjs-2";
 import CustomSelect from "@/components/ui/CustomSelect";
@@ -41,10 +41,10 @@ export default function DashboardPage() {
 
   /* ================= FETCH ================= */
 
-  const fetchStats = async () => {
+  const fetchStats = async (force = false) => {
     try {
 
-      if (dashboardStats[range]) return;
+      if (!force && dashboardStats[range]) return;
 
       setLoading(true);
 
@@ -98,7 +98,11 @@ export default function DashboardPage() {
   const trendColor = getTrendColor(stats?.chart?.orders?.orders);
   const incomeTrendColor = getTrendColor(stats?.chart?.income?.income);
 
-
+  const handleRefresh = async () => {
+    if (loading) return;
+    await fetchStats(true);
+    toast.success("Dashboard refreshed");
+  };
 
   /* ================= LOADING ================= */
 
@@ -112,7 +116,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard index={0} icon={<FaUser className="drop-shadow-md" size={30} />} color={'from-blue-800 to-blue-400'} title="Users" value={stats?.users || 0} />
@@ -120,19 +123,22 @@ export default function DashboardPage() {
         <StatCard index={2} icon={<FaChartLine className="drop-shadow-md" size={30} />} color={'from-pink-800 to-pink-400'} title="Revenue" value={`${stats?.revenue?.toFixed?.(2) || 0}`} />
         <StatCard index={3} icon={<FaHourglassStart className="drop-shadow-md" size={30} />} color={'from-teal-800 to-teal-400'} title="Pending Orders" value={stats?.orders?.pending || 0} />
       </div>
-
-      <CustomSelect
-        className={'ml-auto mr-0'}
-        value={range}
-        placeholder="Select range"
-        onChange={setRange}
-        options={[
-          { label: "This Week", value: "week" },
-          { label: "This Month", value: "month" },
-          { label: "Last Month", value: "lastMonth" },
-          { label: "Last 3 Months", value: "threeMonths" }
-        ]}
-      />
+      <div className="flex justify-between">
+        <CustomSelect
+          value={range}
+          placeholder="Select range"
+          onChange={setRange}
+          options={[
+            { label: "This Week", value: "week" },
+            { label: "This Month", value: "month" },
+            { label: "Last Month", value: "lastMonth" },
+            { label: "Last 3 Months", value: "threeMonths" }
+          ]}
+        />
+        <button onClick={handleRefresh} disabled={loading} className="bg-gradient-to-br from-cyan-600 to-cyan-300 p-3 w-fit rounded-md text-white cursor-pointer group">
+          <FaSyncAlt className={`${loading ? 'animate-spin' : ''} group-hover:rotate-180 duration-300 ease-in-out`} />
+        </button>
+      </div>
 
       {/* Orders Chart */}
       <div className="bg-white shadow-sm rounded-md p-4 h-[40vh] flex flex-col">
@@ -257,7 +263,7 @@ export default function DashboardPage() {
             No orders yet
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {stats?.latestOrders?.map((order, i) => (
               <OrderCard key={order._id} order={order} index={i} />
             ))}
