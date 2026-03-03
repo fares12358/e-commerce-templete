@@ -281,8 +281,8 @@ export default function ProductsPage() {
       resetForm();
       setProductsCache({});
       fetchAll();
-    } catch {
-      toast.error("Create failed");
+    } catch (error) {
+      toast.error(error.message || "Create failed");
     } finally {
       setSubmitting(false);
     }
