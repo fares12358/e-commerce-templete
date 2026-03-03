@@ -38,6 +38,8 @@ export const updateConfig = async (payload) =>
     api.put("/admin/config", payload);
 
 
+export const deleteUserAccount = async (id) => 
+    api.delete(`/users/${id}`)
 /* ================= DASHBOARD ================= */
 
 export const getDashboardStats = (range = "week") => {

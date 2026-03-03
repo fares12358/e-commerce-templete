@@ -150,7 +150,7 @@ export default function OrderDetailsPage() {
 
   /* ================= WHATSAPP MSG ================= */
   useEffect(() => {
-    if (!order) return;
+    if (!order?.location?.phone) return;
 
     const itemsText = order?.items
       ?.map((item) => {
@@ -181,10 +181,10 @@ export default function OrderDetailsPage() {
   ━━━━━━━━━━━━━━━━━━
   📍 عنوان التوصيل:
   ━━━━━━━━━━━━━━━━━━
-  المحافظة: ${order.location.government}
-  المدينة: ${order.location.city}
-  شارع: ${order.location.strName}
-  تفاصيل إضافية: ${order.location.locationDescription}
+  المحافظة: ${order?.location?.government}
+  المدينة: ${order?.location?.city}
+  شارع: ${order?.location?.strName}
+  تفاصيل إضافية: ${order?.location.locationDescription}
   
   📞 رقم التواصل:
   ${order.location.phone}
@@ -236,19 +236,40 @@ export default function OrderDetailsPage() {
               <FaUser className="drop-shadow-md" size={30} />
             </span>
           </div>
+
           <div className="flex flex-col">
-            <Link href={`/users/${order.userId._id}`} className="text-blue-400 cursor-pointer backdrop-blur-sm bg-blue-50 p-2 w-fit rounded-md mb-px drop-shadow-sm"><FaLink /></Link>
-            <div className="font-medium">{order.userId?.name}</div>
+            {order?.userId ? (
+              <>
+                <Link
+                  href={`/users/${order.userId._id}`}
+                  className="text-blue-400 cursor-pointer backdrop-blur-sm bg-blue-50 p-2 w-fit rounded-md mb-px drop-shadow-sm"
+                >
+                  <FaLink />
+                </Link>
+
+                <div className="font-medium">{order.userId.name}</div>
+                <div className="text-sm text-gray-600">
+                  {order.userId.email}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-red-500 font-medium">
+                  مستخدم محذوف
+                </div>
+                <div className="text-sm text-gray-400">
+                  لا يمكن عرض بيانات الحساب
+                </div>
+              </>
+            )}
+
             <div className="text-sm text-gray-600">
-              {order.userId?.email}
-            </div>
-            <div className="text-sm text-gray-600">
-              {order.location.phone}
+              {order?.location?.phone}
             </div>
           </div>
         </div>
 
-        {order.location?.phone && (
+        {order?.location?.phone && (
           <div className=" flex items-center justify-center gap-2">
             <button
               onClick={() => { sendOrderMessage(order.location?.phone, message) }}
@@ -270,7 +291,7 @@ export default function OrderDetailsPage() {
 
       {/* ================= SHIPPING LOCATION ================= */}
 
-      {order.location && (
+      {order?.location && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -341,14 +362,14 @@ export default function OrderDetailsPage() {
           <div className="text-sm text-gray-500">Order Number</div>
           <div className="flex items-center justify-start gap-2 mt-2 cursor-pointer" onClick={() => { copyText(order.orderNumber) }}>
             <FaCopy className="text-blue-400 drop-shadow-md" />
-            <div className="font-medium capitalize">{order.orderNumber}</div>
+            <div className="font-medium capitalize">{order?.orderNumber}</div>
           </div>
         </div>
-        <div className={`bg-white shadow-sm rounded-md p-4 border-t-2 ${borderStyles[order.status]}`}>
+        <div className={`bg-white shadow-sm rounded-md p-4 border-t-2 ${borderStyles[order?.status]}`}>
           <div className="text-sm text-gray-500">Status</div>
           <div className="flex items-center justify-start gap-2 mt-2">
-            {iconStyles[order.status]}
-            <div className="font-medium capitalize">{order.status}</div>
+            {iconStyles[order?.status]}
+            <div className="font-medium capitalize">{order?.status}</div>
           </div>
         </div>
         <div className="bg-white shadow-sm rounded-md p-4">
@@ -371,30 +392,40 @@ export default function OrderDetailsPage() {
       </h3>
       <div className="grid lg:grid-cols-3 grid-cols-1 gap-3 items-start justify-center">
 
-        {order.items.map((item, i) => (
+        {order?.items.map((item, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="bg-white shadow-sm rounded-md p-4 flex gap-4 items-start relative"
+            className={`bg-white shadow-sm rounded-md p-4 flex gap-4 items-start relative ${!item.productId?._id ? 'border border-red-400' : ''}`}
           >
             {/* Link to product */}
-            <div
-              className="absolute top-0 right-0 p-2 cursor-pointer text-blue-500 rounded-bl-md shadow-md bg-white"
-              onClick={() => router.push(`/products/${item.productId._id}`)}
-            >
-              <FaLink />
-            </div>
+            {
+              item.productId?._id &&
+              <div
+                className="absolute top-0 right-0 p-2 cursor-pointer text-blue-500 rounded-bl-md shadow-md bg-white"
+                onClick={() =>
+
+                  router.push(`/products/${item.productId._id}`)
+                }
+              >
+                <FaLink />
+              </div>
+            }
 
             {/* Image only from product */}
             <img
-              src={item.productId?.images?.[0]?.url}
+              src={item.productId?.images?.[0]?.url || "/placeholder.png"}
               className="w-20 h-20 rounded object-cover"
             />
 
             {/* Snapshot data */}
             <div className="flex-1 space-y-1">
+              {
+                !item.productId?._id &&
+                <div className="font-medium text-red-500">منتج محذوف</div>
+              }
               <div className="font-medium">{item.name}</div>
 
               <div className="text-sm text-gray-600">
@@ -414,9 +445,9 @@ export default function OrderDetailsPage() {
               {/* Attributes */}
               {item.attributes?.length > 0 && (
                 <div className="text-xs text-gray-500 flex flex-wrap gap-2">
-                  {item.attributes.map((attr) => (
+                  {item.attributes.map((attr, i) => (
                     <span
-                      key={attr._id}
+                      key={i}
                       className="bg-gray-100 px-2 py-1 rounded"
                     >
                       <span className="text-gray-800 ml-2">
@@ -463,27 +494,29 @@ export default function OrderDetailsPage() {
 
       {/* ================= ACTIONS ================= */}
 
-      {order.status !== "delivered" && order.status !== "cancelled" && (
-        <div className="flex flex-wrap gap-3">
-          {nextStatus && (
+      {
+        order.status !== "delivered" && order.status !== "cancelled" && order?.userId &&  (
+          <div className="flex flex-wrap gap-3">
+            {nextStatus && (
+              <button
+                disabled={actionLoading}
+                onClick={confirmUpdateStatus}
+                className={`bg-gradient-to-br ${buttonStyles[nextStatus]} shadow-sm  text-white px-5 py-3 rounded-md flex items-center gap-2 hover:-translate-y-1 transition duration-300 ease-in-out`}
+              >
+                <FaTruck className="drop-shadow-md" /> Mark as {nextStatus}
+              </button>
+
+            )}
             <button
               disabled={actionLoading}
-              onClick={confirmUpdateStatus}
-              className={`bg-gradient-to-br ${buttonStyles[nextStatus]} shadow-sm  text-white px-5 py-3 rounded-md flex items-center gap-2 hover:-translate-y-1 transition duration-300 ease-in-out`}
+              onClick={confirmCancelOrder}
+              className="bg-gradient-to-br from-red-800 to-red-400 shadow-sm  text-white px-5 py-3 rounded-md flex items-center gap-2 hover:-translate-y-1 transition duration-300 ease-in-out"
             >
-              <FaTruck className="drop-shadow-md" /> Mark as {nextStatus}
+              <FaTimesCircle className="drop-shadow-md" /> Cancel Order
             </button>
-
-          )}
-          <button
-            disabled={actionLoading}
-            onClick={confirmCancelOrder}
-            className="bg-gradient-to-br from-red-800 to-red-400 shadow-sm  text-white px-5 py-3 rounded-md flex items-center gap-2 hover:-translate-y-1 transition duration-300 ease-in-out"
-          >
-            <FaTimesCircle className="drop-shadow-md" /> Cancel Order
-          </button>
-        </div>
-      )}
+          </div>
+        )
+      }
       <ConfirmModal
         open={!!confirmAction}
         title={confirmAction?.title}
@@ -495,7 +528,7 @@ export default function OrderDetailsPage() {
         resetValue={resetStock}
         setResetValue={setResetStock}
       />
-    </div>
+    </div >
   );
 }
 

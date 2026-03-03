@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getUserDetails } from "@/lib/api";
+import { deleteUserAccount, getUserDetails } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
 import StatCard from "@/components/ui/StatCard";
 import OrderCard from "@/components/orders/OrderCard";
 import { toast } from "react-toastify";
+
 import {
   FaUser,
   FaEnvelope,
@@ -18,9 +19,12 @@ import {
   FaTruck,
   FaTimesCircle,
   FaArrowLeft,
-  FaSyncAlt
+  FaSyncAlt,
+  FaTrash
 } from "react-icons/fa";
+
 import { useAuth } from "@/context/AuthContext";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 const getVisiblePages = (current, total) => {
   const delta = 1; // how many around current
   const pages = [];
@@ -54,6 +58,8 @@ export default function UserDetailsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUser = async () => {
     try {
@@ -80,6 +86,7 @@ export default function UserDetailsPage() {
       }
     } catch {
       toast.error("Failed to load user details");
+      setData(null)
     } finally {
       if (!refreshing) {
         setLoading(false);
@@ -100,6 +107,27 @@ export default function UserDetailsPage() {
     }
   };
 
+  const confirmDelete = async () => {
+    try {
+      setDeleteLoading(true);
+
+      const res = await deleteUserAccount(id);
+
+      if (res.success) {
+        toast.success(res.message);
+        setDeleteModalOpen(false);
+        router.push("/users");
+      }
+
+    } catch (err) {
+      console.log(err);
+
+      toast.error(err.message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUser();
   }, [page]);
@@ -111,21 +139,25 @@ export default function UserDetailsPage() {
       </div>
     );
   }
-
+  if (!data) {
+    return (
+      <div className="w-full min-h-[25vh] flex items-center justify-center rounded-md shadow-sm text-gray-400 font-semibold bg-white">User Not Fount</div>
+    )
+  }
   const { user, orders, stats, pagination } = data;
 
   return (
     <div className="space-y-8">
 
       <div className="w-full flex items-center justify-between">
-      {/* BACK */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center shadow-sm gap-2 text-sm bg-gradient-to-br from-zinc-600 to-zinc-400 text-white font-semibold py-3 px-5 rounded-md hover:-translate-y-1 duration-300 transition-all"
+        {/* BACK */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center shadow-sm gap-2 text-sm bg-gradient-to-br from-zinc-600 to-zinc-400 text-white font-semibold py-3 px-5 rounded-md hover:-translate-y-1 duration-300 transition-all"
 
-      >
-        <FaArrowLeft /> Back
-      </button>
+        >
+          <FaArrowLeft /> Back
+        </button>
         <button onClick={handleRefresh} disabled={refreshing} className="ml-auto mr-0 bg-gradient-to-br from-cyan-600 to-cyan-300 p-3 w-fit rounded-md text-white cursor-pointer group">
           <FaSyncAlt className={`${refreshing ? 'animate-spin' : ''} group-hover:rotate-180 duration-300 ease-in-out`} />
         </button>
@@ -136,7 +168,7 @@ export default function UserDetailsPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border rounded-md p-5 flex flex-wrap gap-6 items-center justify-between"
+        className="bg-white shadow-sm rounded-md p-5 flex flex-wrap gap-6 items-center justify-between"
       >
         <div className="space-y-1">
           <div className="flex items-center gap-2 font-medium">
@@ -163,6 +195,7 @@ export default function UserDetailsPage() {
           {user.isActive ? "Active" : "Suspended"}
         </span>
       </motion.div>
+      <button onClick={() => setDeleteModalOpen(true)} className="flex items-center justify-center gap-1 text-red-500 bg-white py-3 px-4 rounded-md shadow-sm cursor-pointer hover:-translate-y-1 duration-300 ease-in-out"><FaTrash />Delete Account</button>
 
       {/* ================= STATS ================= */}
 
@@ -180,7 +213,7 @@ export default function UserDetailsPage() {
       {/* ================= ORDERS ================= */}
 
       {orders.length === 0 ? (
-        <div className="text-center text-gray-500 py-10">
+        <div className="text-center text-gray-500 py-10 bg-white rounded-md shadow-sm">
           No orders yet
         </div>
       ) : (
@@ -234,6 +267,17 @@ export default function UserDetailsPage() {
 
         </div>
       )}
+      <ConfirmModal
+        open={deleteModalOpen}
+        loading={deleteLoading}
+        title="حذف الحساب"
+        message="هل أنت متأكد من حذف هذا الحساب؟ لا يمكن التراجع بعد ذلك."
+        icon={<FaTrash className="text-red-500 text-4xl" />}
+        onCancel={() => {
+          if (!deleteLoading) setDeleteModalOpen(false);
+        }}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

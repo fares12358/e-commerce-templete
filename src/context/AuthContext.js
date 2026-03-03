@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getAdminMe, logoutAdmin } from "@/lib/api";
 import { toast } from "react-toastify";
-import api from "@/lib/axios";
+
 
 const AuthContext = createContext(null);
 
@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [LogOutloading, setLogOutLoading] = useState(false);
 
   const checkAuth = async () => {
     try {
@@ -31,50 +32,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    if (!admin?.id) return;
-
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function (OneSignal) {
-      const subId = OneSignal.User.PushSubscription.id;
-      if (!subId) {
-        return;
-      }
-      try {
-        await api.post("/admin/save-subscription", {
-          subscriptionId: subId,
-        });
-      } catch (error) {
-        toast.error('Error saving subscription')
-      }
-    });
-
-  }, [admin]);
-
   const logout = async () => {
     try {
-      await logoutAdmin();
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function (OneSignal) {
-
-        const subId = OneSignal.User.PushSubscription.id;
-
-        if (subId) {
-          // احذف subscription من الباك
-          await api.post("/admin/save-subscription", {
-            subscriptionId: null,
-          });
-        }
-        // أوقف استقبال الإشعارات لهذا الجهاز
-        await OneSignal.User.PushSubscription.optOut();
-      });
-
+      setLogOutLoading(true)
+      const res = await logoutAdmin();
+      if (res.success) {
+        setAdmin(null);
+        setIsAuth(false);
+        setDashboardStats({})
+        setCategories([])
+        setProductsCache({})
+        setOrdersCache({})
+        setAds([])
+        setUsersCache({})
+        setAdminProfileCache(null)
+        setConfigCache(null)
+        setContentCache(null)
+        setNotificationCache(null)
+        setUserOrdersCache({})
+      }
     } catch (err) {
       toast.error(err.message || 'حدث خطأ اثناء تسجيل الخروج')
       // ignore error
     } finally {
-      setAdmin(null);
-      setIsAuth(false);
+      setLogOutLoading(false)
     }
   };
 

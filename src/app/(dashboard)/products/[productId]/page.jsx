@@ -365,7 +365,7 @@ export default function ProductDetailsPage() {
     );
   }
 
-  if (!product) return <div className="p-6">Product not found</div>;
+  if (!product) return <div className="w-full min-h-[25vh] flex items-center justify-center rounded-md shadow-sm text-gray-400 font-semibold bg-white">Product not found</div>;
 
   return (
     <div className="space-y-10">

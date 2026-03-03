@@ -60,7 +60,14 @@ export default function AdminProfilePage() {
         notifyOnNewOrder: false,
         notifySound: false,
         sectionNotify: false,
+        SmtpServer: false,
+        email: '',
+        appPassword: '',
+        host: '',
+        port: '',
+        secure: false,
     });
+
     const [notificationLoading, setNotificationLoading] = useState(false);
 
     /* ================= LOAD DATA ================= */
@@ -138,13 +145,12 @@ export default function AdminProfilePage() {
 
     const getNotificationSetting = async () => {
         try {
-            // ✅ Use cache if exists
             if (notificationCache) {
                 setNotificationSetting(notificationCache);
                 return;
             }
-            setLoading(true);
 
+            setLoading(true);
             const res = await getNotification();
 
             if (res.success) {
@@ -154,14 +160,20 @@ export default function AdminProfilePage() {
                     notifyOnNewOrder: res.data.notifyOnNewOrder || false,
                     notifySound: res.data.notifySound || false,
                     sectionNotify: res.data.sectionNotify || false,
+
+                    // ✅ SMTP
+                    SmtpServer: res.data.SmtpServer || false,
+                    email: res.data.email || "",
+                    appPassword: res.data.appPassword || "",
+                    host: res.data.host || "",
+                    port: res.data.port || "",
+                    secure: res.data.secure || false,
                 };
 
                 setNotificationSetting(data);
-
-                // 🔥 Save to cache
                 setNotificationCache(data);
             }
-        } catch (err) {
+        } catch {
             toast.error("Failed to load notification settings");
         }
     };
@@ -544,6 +556,103 @@ export default function AdminProfilePage() {
                             }
                         />
                     </div>
+
+                    {/* SMTP Server Toggle */}
+                    <div className="flex items-center justify-between">
+                        <span>Enable Custom SMTP Server</span>
+                        <Switch
+                            checked={notificationSetting.SmtpServer}
+                            onChange={(value) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    SmtpServer: value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex flex-col gap-2">
+                        <label>Email</label>
+                        <input
+                            type="email"
+                            className="border px-3 py-2 w-full rounded-md"
+                            value={notificationSetting.email}
+                            onChange={(e) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    email: e.target.value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* App Password */}
+                    <div className="flex flex-col gap-2">
+                        <label>App Password</label>
+                        <input
+                            type="text"
+                            className="border px-3 py-2 w-full rounded-md"
+                            value={notificationSetting.appPassword}
+                            onChange={(e) =>
+                                setNotificationSetting(prev => ({
+                                    ...prev,
+                                    appPassword: e.target.value
+                                }))
+                            }
+                        />
+                    </div>
+
+                    {/* ✅ Show Only If SMTP Server Enabled */}
+                    {notificationSetting.SmtpServer && (
+                        <>
+                            {/* Host */}
+                            <div className="flex flex-col gap-2">
+                                <label>SMTP Host</label>
+                                <input
+                                    type="text"
+                                    className="border px-3 py-2 w-full rounded-md"
+                                    value={notificationSetting.host}
+                                    onChange={(e) =>
+                                        setNotificationSetting(prev => ({
+                                            ...prev,
+                                            host: e.target.value
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            {/* Port */}
+                            <div className="flex flex-col gap-2">
+                                <label>SMTP Port</label>
+                                <input
+                                    type="number"
+                                    className="border px-3 py-2 w-full rounded-md"
+                                    value={notificationSetting.port}
+                                    onChange={(e) =>
+                                        setNotificationSetting(prev => ({
+                                            ...prev,
+                                            port: e.target.value
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            {/* Secure */}
+                            <div className="flex items-center justify-between">
+                                <span>Secure Connection (SSL)</span>
+                                <Switch
+                                    checked={notificationSetting.secure}
+                                    onChange={(value) =>
+                                        setNotificationSetting(prev => ({
+                                            ...prev,
+                                            secure: value
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </>
+                    )}
 
                     <button
                         type="submit"
