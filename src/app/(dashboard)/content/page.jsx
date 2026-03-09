@@ -392,7 +392,7 @@ export default function ContentManagementPage() {
 
             {/* Terms of Use */}
             <div className="bg-white shadow-sm rounded-md p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col justify-between items-start gap-4 mb-6">
                     <h2 className="text-2xl font-bold">شروط الاستخدام</h2>
                     <button
                         onClick={() => openAddModal("termsOfUse")}
@@ -434,7 +434,7 @@ export default function ContentManagementPage() {
 
             {/* Privacy Policy */}
             <div className="bg-white shadow-sm rounded-md p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col justify-between items-start gap-4 mb-6">
                     <h2 className="text-2xl font-bold">سياسة الخصوصية</h2>
                     <button
                         onClick={() => openAddModal("privacyPolicy")}
