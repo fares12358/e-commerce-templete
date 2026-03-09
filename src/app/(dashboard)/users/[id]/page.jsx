@@ -120,8 +120,6 @@ export default function UserDetailsPage() {
       }
 
     } catch (err) {
-      console.log(err);
-
       toast.error(err.message);
     } finally {
       setDeleteLoading(false);

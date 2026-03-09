@@ -94,7 +94,7 @@ export default function AdsPage() {
       setSaving(false);
     }
   };
-
+  
   const handleEdit = (ad) => {
     setEditingId(ad._id);
     setTitle(ad.title);

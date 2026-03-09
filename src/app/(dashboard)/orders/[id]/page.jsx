@@ -80,9 +80,6 @@ export default function OrderDetailsPage() {
       setLoading(true);
       const res = await getOrderById(id);
       if (res.success) setOrder(res.data);
-      console.log(res.data);
-      console.log(res.data);
-
     } catch {
       toast.error("Failed to load order");
     } finally {
