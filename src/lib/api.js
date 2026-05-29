@@ -33,13 +33,12 @@ export const changeAdminPassword = (payload) =>
 export const getConfig = async () =>
     api.get("/admin/config");
 
-
 export const updateConfig = async (payload) =>
     api.put("/admin/config", payload);
 
-
-export const deleteUserAccount = async (id) => 
+export const deleteUserAccount = async (id) =>
     api.delete(`/users/${id}`)
+
 /* ================= DASHBOARD ================= */
 
 export const getDashboardStats = (range = "week") => {
@@ -54,9 +53,7 @@ export const getCategories = async () => {
 
 export const createCategory = async (payload) => {
     return api.post("/admin/categories", payload, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
     });
 };
 
@@ -67,6 +64,7 @@ export const updateCategory = async (id, payload) => {
 export const CategoryStatus = async (id) => {
     return api.patch(`/admin/categories/${id}`);
 };
+
 export const deleteCategory = async (id) => {
     return api.delete(`/admin/categories/${id}`);
 };
@@ -93,8 +91,7 @@ export const deleteAttribute = async (id) => {
     return api.delete(`/admin/attributes/${id}`);
 };
 
-// ===== SELECTIONS =====
-
+/* ===== SELECTIONS ===== */
 export const addProductSelection = (id, data) =>
     api.post(`/admin/products/selections/${id}`, data);
 
@@ -104,7 +101,6 @@ export const updateProductSelection = (id, data) =>
 export const deleteProductSelection = (id, selectionId) =>
     api.delete(`/admin/products/selections/${id}/${selectionId}`);
 
-// options
 export const addSelectionOption = (id, selectionId, value) =>
     api.post(`/admin/products/selections/${id}/${selectionId}/options`, { value });
 
@@ -115,16 +111,11 @@ export const deleteSelectionOption = (id, selectionId, optionId) =>
 
 export const getProducts = async (params = {}) => {
     const cleanParams = Object.fromEntries(
-        Object.entries(params).filter(
-            ([_, value]) => value !== undefined && value !== ""
-        )
+        Object.entries(params).filter(([_, value]) => value !== undefined && value !== "")
     );
-
     const query = new URLSearchParams(cleanParams).toString();
-
     return api.get(`/admin/products?${query}`);
 };
-
 
 export const createProduct = async (payload) => {
     return api.post("/admin/products", payload);
@@ -157,8 +148,7 @@ export const updateProductBasic = async (id, payload) => {
     return res.data;
 };
 
-
-// ATTRIBUTES
+/* ATTRIBUTES */
 export const addProductAttribute = async (productId, payload) => {
     const res = await api.post(`/admin/products/attributes/${productId}`, payload);
     return res.data;
@@ -174,7 +164,7 @@ export const deleteProductAttribute = async (productId, attributeId) => {
     return res.data;
 };
 
-// IMAGES
+/* IMAGES */
 export const addProductImage = async (productId, payload) => {
     const res = await api.post(`/admin/products/images/${productId}`, payload);
     return res.data;
@@ -206,9 +196,33 @@ export const getOrderStats = async () => {
 export const updateOrderStatus = async (id, status) => {
     return api.patch(`/orders/${id}/status`, { status });
 };
+
 export const cancelOrderAdmin = async (id, payload) => {
     return api.patch(`/orders/${id}/cancel`, payload);
 };
+
+/* ================= ORDERS — REFUND [v1.0.5] ================= */
+
+// Step 1 (user):  none → requested
+// handled by frontend/lib/api.js requestRefund
+
+// Step 2a (admin): requested → approved
+export const approveRefund = (id, payload) =>
+    api.patch(`/orders/${id}/refund/approve`, payload);
+
+// Step 2b (admin): requested → rejected  (terminal)
+export const rejectRefund = (id, payload) =>
+    api.patch(`/orders/${id}/refund/reject`, payload);
+
+// Step 3 (admin): approved → product_received
+// payload: { restoreStock?: Boolean, adminNote?: String }
+export const markProductReceived = (id, payload) =>
+    api.patch(`/orders/${id}/refund/product-received`, payload);
+
+// Step 4 (admin): product_received → money_refunded  (terminal)
+// payload: { adminNote?: String }
+export const markMoneyRefunded = (id, payload) =>
+    api.patch(`/orders/${id}/refund/money-refunded`, payload);
 
 /* ================= USERS ================= */
 
@@ -229,42 +243,24 @@ export const getUserDetails = async (id, page = 1) => {
 };
 
 /* ================= ADS ================= */
-export const getAds = async () =>
-    api.get("/admin/ads");
-
-export const getAdById = async (id) =>
-    api.get(`/admin/ads/${id}`);
-
-export const createAd = async (formData) =>
-    api.post("/admin/ads", formData);
-
-export const updateAd = async (id, formData) =>
-    api.put(`/admin/ads/${id}`, formData);
-
-export const deleteAd = async (id) =>
-    api.delete(`/admin/ads/${id}`);
-
+export const getAds = async () => api.get("/admin/ads");
+export const getAdById = async (id) => api.get(`/admin/ads/${id}`);
+export const createAd = async (formData) => api.post("/admin/ads", formData);
+export const updateAd = async (id, formData) => api.put(`/admin/ads/${id}`, formData);
+export const deleteAd = async (id) => api.delete(`/admin/ads/${id}`);
 
 /* ================= CONTENT ================= */
-
-
-// Get Content (Public - for website)
 export const getContent = async () => api.get('/admin/content');
-
-// Update Main Content (Admin - About, Vision, Mission)
 export const updateMainContent = async (data) => api.put('/admin/content/main', data);
-
-// Add Section (Admin - Terms/Privacy)
 export const addContentSection = async (data) => api.post('/admin/content/section', data);
-
-// Update Section (Admin - Terms/Privacy)
 export const updateContentSection = async (data) => api.put('/admin/content/section', data);
-
-// Delete Section (Admin - Terms/Privacy)
 export const deleteContentSection = async (data) => api.delete('/admin/content/section', { data });
 
-/* ================= notification ================= */
-
+/* ================= NOTIFICATION ================= */
 export const getNotification = async () => api.get('/admin/notification');
 export const updateNotification = async (data) => api.put('/admin/notification', data);
 
+/* ================= REFUND FLAG [v1.0.4] ================= */
+// Admin-only routes — GET/PUT /admin/refund-flag
+export const getRefundFlag    = async ()       => api.get('/admin/refund-flag');
+export const updateRefundFlag = async (payload) => api.put('/admin/refund-flag', payload);

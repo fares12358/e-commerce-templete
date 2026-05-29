@@ -2,70 +2,93 @@
 
 import { motion } from "framer-motion";
 import Loader from "@/components/ui/Loader";
-import { FaLink } from "react-icons/fa";
+import { FaLink, FaExternalLinkAlt } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-const borderStyles = {
-    Orders: "border-black",
-    Pending: "border-yellow-500",
-    Confirmed: "border-blue-500",
-    Shipped: "border-purple-500",
-    Delivered: "border-green-500",
-    Cancelled: "border-red-500",
+
+const statColors = {
+  Orders:    { bg: "#f8fafc", color: "#475569" },
+  Pending:   { bg: "#fefce8", color: "#a16207" },
+  Confirmed: { bg: "#eff6ff", color: "#1d4ed8" },
+  Shipped:   { bg: "#faf5ff", color: "#7e22ce" },
+  Delivered: { bg: "#f0fdf4", color: "#15803d" },
+  Cancelled: { bg: "#fff1f2", color: "#be123c" },
 };
 
-export default function UserCard({
-    user,
-    onToggle,
-    loading
-}) {
-    const router = useRouter()
-    const s = user.orderStats;
+export default function UserCard({ user, onToggle, loading }) {
+  const router = useRouter();
+  const s = user.orderStats;
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-md p-4 space-y-3 shadow-sm hover:shadow transition relative"
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl p-4 relative"
+      style={{ border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+    >
+      {/* Link */}
+      <button
+        onClick={() => router.push(`/users/${user._id}`)}
+        className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg transition-colors duration-150 cursor-pointer border-none"
+        style={{ background: "#eff6ff", color: "var(--accent)" }}
+        title="View user"
+      >
+        <FaExternalLinkAlt size={10} />
+      </button>
+
+      {/* Header */}
+      <div className="pr-8 mb-3">
+        <div className="font-semibold text-[14px] text-slate-900 truncate">{user.name}</div>
+        <div className="text-[12px] text-slate-500 truncate">{user.email}</div>
+        <div className="text-[11px] text-slate-400 mt-0.5">
+          Joined {new Date(user.createdAt).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" })}
+        </div>
+      </div>
+
+      {/* Status + toggle */}
+      <div className="flex items-center justify-between mb-3">
+        <span className={`status-badge ${user.isActive ? "status-active" : "status-suspended"}`}>
+          {user.isActive ? "Active" : "Suspended"}
+        </span>
+        <button
+          onClick={() => onToggle(user)}
+          disabled={loading}
+          className="d-btn text-[12px] px-3 py-1.5"
+          style={{
+            background: user.isActive ? "#fee2e2" : "#dcfce7",
+            color: user.isActive ? "#b91c1c" : "#15803d",
+            border: "none",
+          }}
         >
-            <div className="ab absolute top-0 left-0 p-2 shadow-sm rounded-br-md cursor-pointer bg-white" onClick={() => { router.push(`/users/${user._id}`) }}>
-                <FaLink size={15} className="text-blue-400 drop-shadow-md" />
-            </div>
-            <div className="flex justify-between items-center">
-                <div>
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-sm text-gray-600">{user.email}</div>
-                    <div className="text-xs text-gray-400">
-                        Joined: {new Date(user.createdAt).toLocaleDateString()}
-                    </div>
-                </div>
+          {loading
+            ? <Loader size={14} color={user.isActive ? "#b91c1c" : "#15803d"} />
+            : user.isActive ? "Suspend" : "Activate"}
+        </button>
+      </div>
 
-                <button
-                    onClick={() => onToggle(user)}
-                    disabled={loading}
-                    className={`px-4 py-1 rounded-md text-sm transition hover:-translate-y-1 duration-300 ease-in-out ${user.isActive
-                        ? "bg-gradient-to-br from-green-800 to-green-400 text-white"
-                        : "bg-gradient-to-br from-red-800 to-red-400 text-white"
-                        }`}
-                >
-                    {loading ? <Loader size={15} color="#fff" /> : user.isActive ? "Active" : "Suspended"}
-                </button>
+      {/* Order stats */}
+      <div className="grid grid-cols-3 gap-1.5">
+        {["Orders","Pending","Confirmed","Shipped","Delivered","Cancelled"].map(label => {
+          const keyMap = {
+            Orders:"total", Pending:"pending", Confirmed:"confirmed",
+            Shipped:"shipped", Delivered:"delivered", Cancelled:"cancelled"
+          };
+          const scheme = statColors[label];
+          return (
+            <div
+              key={label}
+              className="rounded-lg px-2 py-2 text-center"
+              style={{ background: scheme.bg }}
+            >
+              <div className="text-[13px] font-bold" style={{ color: scheme.color }}>
+                {s?.[keyMap[label]] ?? 0}
+              </div>
+              <div className="text-[10px] font-medium" style={{ color: scheme.color, opacity: 0.8 }}>
+                {label}
+              </div>
             </div>
-
-            <div className="grid grid-cols-3 gap-3 text-xs text-center">
-                <Stat label="Orders" value={s.total} />
-                <Stat label="Pending" value={s.pending} />
-                <Stat label="Confirmed" value={s.confirmed} />
-                <Stat label="Shipped" value={s.shipped} />
-                <Stat label="Delivered" value={s.delivered} />
-                <Stat label="Cancelled" value={s.cancelled} />
-            </div>
-        </motion.div>
-    );
+          );
+        })}
+      </div>
+    </motion.div>
+  );
 }
-
-const Stat = ({ label, value }) => (
-    <div className={` shadow-sm border-t-2 rounded-md p-2 ${borderStyles[label]}`}>
-        <div className="font-medium">{value}</div>
-        <div className="text-gray-500">{label}</div>
-    </div>
-);

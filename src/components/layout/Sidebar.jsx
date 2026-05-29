@@ -4,107 +4,148 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { FaBullhorn, FaDolly, FaSignOutAlt, FaStore, FaTags, FaThLarge, FaUser, FaUserCog, FaUserShield } from "react-icons/fa";
+import {
+  FaBullhorn, FaDolly, FaSignOutAlt, FaStore, FaTags,
+  FaThLarge, FaUser, FaUserCog, FaFileAlt
+} from "react-icons/fa";
 import ConfirmModal from "../ui/ConfirmModal";
 import { useState } from "react";
+
 const links = [
-  { name: "Dashboard", href: "/dashboard", icon: FaThLarge },
-  { name: "Categories", href: "/categories", icon: FaStore },
-  { name: "Products", href: "/products", icon: FaTags },
-  { name: "Orders", href: "/orders", icon: FaDolly },
-  { name: "Users", href: "/users", icon: FaUser },
-  { name: "Ads", href: "/ads", icon: FaBullhorn },
-  { name: "Profile", href: "/profile", icon: FaUserCog },
-  { name: "Content", href: "/content", icon: FaUserCog },
+  { name: "Dashboard",   href: "/dashboard",  icon: FaThLarge },
+  { name: "Categories",  href: "/categories", icon: FaStore },
+  { name: "Products",    href: "/products",   icon: FaTags },
+  { name: "Orders",      href: "/orders",     icon: FaDolly },
+  { name: "Users",       href: "/users",      icon: FaUser },
+  { name: "Ads",         href: "/ads",        icon: FaBullhorn },
+  { name: "Content",     href: "/content",    icon: FaFileAlt },
+  { name: "Profile",     href: "/profile",    icon: FaUserCog },
 ];
-export default function Sidebar({ open, onClose }) {
+
+function SidebarContent({ onClose }) {
   const pathname = usePathname();
-  const { logout } = useAuth();
-  const [confirmLogout, setconfirmLogout] = useState(false)
+  const { logout, admin } = useAuth();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const SidebarContent = (
-    <div className="h-full w-64 bg-white border-r border-gray-200 p-4 flex flex-col">
-      <h2 className="mb-8 text-lg font-semibold flex items-center gap-2">
-        <div
-          className='bg-gradient-to-br from-blue-800 to-purple-400 shadow-md text-white rotate-12 size-10 flex items-center justify-center rounded-xl'
-        >
-          <span className="-rotate-12">
-            <FaUserShield size={20} className="drop-shadow-md" />
-          </span>
+  return (
+    <div
+      className="h-full w-60 flex flex-col"
+      style={{ background: "var(--sidebar-bg)" }}
+    >
+      {/* Logo */}
+      <div className="px-5 py-5 border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "var(--accent)" }}
+          >
+            <FaThLarge size={13} className="text-white" />
+          </div>
+          <div>
+            <p className="text-white text-[13px] font-semibold leading-none">Admin Panel</p>
+            <p className="text-white/40 text-[11px] mt-0.5 truncate max-w-[120px]">
+              {admin?.name || "Admin"}
+            </p>
+          </div>
         </div>
-        Admin Dashboard
-      </h2>
+      </div>
 
-      <nav className="flex-1 space-y-1">
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <p className="text-white/30 text-[10px] font-semibold tracking-widest uppercase px-2 mb-3">
+          Navigation
+        </p>
         {links.map((link) => {
-          const active = pathname === link.href;
+          const active = pathname === link.href || pathname.startsWith(link.href + "/");
           const Icon = link.icon;
           return (
             <Link
               key={link.name}
               href={link.href}
               onClick={onClose}
-              className={`rounded px-3 py-2 text-sm flex items-center gap-2 transition ${active
-                ? "bg-gradient-to-br from-indigo-600 to-indigo-300 text-white"
-                : "text-gray-700 hover:bg-gray-100"
-                }`}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150"
+              style={{
+                background: active ? "var(--accent)" : "transparent",
+                color: active ? "#fff" : "rgba(255,255,255,0.55)",
+              }}
+              onMouseEnter={e => {
+                if (!active) e.currentTarget.style.background = "var(--sidebar-hover)";
+                if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.85)";
+              }}
+              onMouseLeave={e => {
+                if (!active) e.currentTarget.style.background = "transparent";
+                if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.55)";
+              }}
             >
-              <div className="">
-                <Icon
-                  className={`text-lg ${active ? "text-white text-2xl p-1 rounded-sm shadow-md -translate-y-3 rotate-12 -translate-x-3 scale-[200%] transition-all duration-500 ease-in-out drop-shadow-md backdrop-blur-sm" : "text-black"
-                    }`}
-                />
-              </div>
+              <Icon size={14} className="shrink-0" />
               {link.name}
             </Link>
           );
         })}
       </nav>
 
-      <button
-        onClick={() => setconfirmLogout(true)}
-        className="mt-auto bg-gradient-to-br from-red-800 to-red-400 text-white py-3 px-2 rounded-md flex items-center justify-center gap-2 hover:-translate-y-1 transition-all ease-in-out duration-300"
-      >
-        <FaSignOutAlt />
-        Logout
-      </button>
+      {/* Logout */}
+      <div className="px-3 py-4 border-t border-white/10 shrink-0">
+        <button
+          onClick={() => setConfirmLogout(true)}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer border-none"
+          style={{ color: "rgba(255,255,255,0.55)", background: "transparent" }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "rgba(239,68,68,0.15)";
+            e.currentTarget.style.color = "#f87171";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "rgba(255,255,255,0.55)";
+          }}
+        >
+          <FaSignOutAlt size={13} className="shrink-0" />
+          Logout
+        </button>
+      </div>
+
+      <ConfirmModal
+        open={confirmLogout}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={logout}
+      />
     </div>
   );
+}
 
+export default function Sidebar({ open, onClose }) {
   return (
     <>
       {/* Desktop */}
-      <div className="hidden md:block">
-        {SidebarContent}
+      <div className="hidden md:flex shrink-0">
+        <SidebarContent onClose={() => {}} />
       </div>
 
-      {/* Mobile */}
+      {/* Mobile overlay */}
       <AnimatePresence>
         {open && (
           <>
-            {/* Overlay */}
             <motion.div
-              className="fixed inset-0 bg-black/30 z-40 md:hidden"
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
             />
-
-            {/* Slide sidebar */}
             <motion.div
               className="fixed left-0 top-0 z-50 h-full md:hidden"
-              initial={{ x: -260 }}
+              initial={{ x: -240 }}
               animate={{ x: 0 }}
-              exit={{ x: -260 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              exit={{ x: -240 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {SidebarContent}
+              <SidebarContent onClose={onClose} />
             </motion.div>
           </>
         )}
       </AnimatePresence>
-      <ConfirmModal open={confirmLogout} title="Logout" message="DO you want to logout" onCancel={() => setconfirmLogout(false)} onConfirm={logout} />
     </>
   );
 }

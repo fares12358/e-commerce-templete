@@ -2,46 +2,291 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ─────────────────────────────────────── */
+:root {
+  --sidebar-bg: #0f172a;
+  --sidebar-active: #6366f1;
+  --sidebar-hover: rgba(255,255,255,0.07);
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --radius: 10px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+}
+
+/* ─── Base reset ─────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── Form inputs ────────────────────────────────────────── */
+.d-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.d-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+.d-input::placeholder { color: var(--text-subtle); }
+
+textarea.d-input { resize: vertical; min-height: 80px; }
+
+/* ─── Cards ──────────────────────────────────────────────── */
+.d-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+}
+
+/* ─── Buttons ────────────────────────────────────────────── */
+.d-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background 0.15s, opacity 0.15s, transform 0.15s;
+}
+.d-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.d-btn:not(:disabled):hover { transform: translateY(-1px); }
+
+.d-btn-primary { background: var(--accent); color: #fff; }
+.d-btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+
+.d-btn-danger { background: #ef4444; color: #fff; }
+.d-btn-danger:not(:disabled):hover { background: #dc2626; }
+
+.d-btn-outline {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.d-btn-outline:not(:disabled):hover { background: #f8fafc; }
+
+.d-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+}
+.d-btn-ghost:not(:disabled):hover { background: #f1f5f9; color: var(--text); }
+
+/* ─── Status badges ──────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status-pending   { background:#fef3c7; color:#b45309; }
+.status-confirmed { background:#dbeafe; color:#1d4ed8; }
+.status-shipped   { background:#ede9fe; color:#6d28d9; }
+.status-delivered { background:#dcfce7; color:#15803d; }
+.status-cancelled { background:#fee2e2; color:#b91c1c; }
+.status-active    { background:#dcfce7; color:#15803d; }
+.status-suspended { background:#fee2e2; color:#b91c1c; }
+
+/* ─── Page header ────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+.page-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.page-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+}
+
+/* ─── Section labels ─────────────────────────────────────── */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 0.375rem;
+}
+
+/* ─── Notification animations ────────────────────────────── */
 @keyframes dot-pulse {
-
-  0%,
-  100% {
-    transform: scale(0);
-    opacity: 0.5;
-  }
-
-  50% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%,100% { transform: scale(0); opacity: 0.5; }
+  50%      { transform: scale(1); opacity: 1; }
 }
-
 @keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
-
-.animate-slideIn {
-  animation: slideIn 0.3s ease-out;
-}
-
 @keyframes progress {
-  from {
-    width: 100%;
-  }
-
-  to {
-    width: 0%;
-  }
+  from { width: 100%; }
+  to   { width: 0%; }
 }
 
-.animate-progress {
-  animation: progress 8s linear forwards;
+.animate-slideIn  { animation: slideIn 0.3s cubic-bezier(0.16,1,0.3,1); }
+.animate-progress { animation: progress 8s linear forwards; }
+
+/* ─── Refresh spin ───────────────────────────────────────── */
+@keyframes spin-once {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin-hover:hover svg { animation: spin-once 0.4s ease; }
+
+/* ─── Table styles ───────────────────────────────────────── */
+.d-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.d-table th {
+  text-align: left;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+}
+.d-table td {
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.d-table tr:last-child td { border-bottom: none; }
+.d-table tbody tr:hover td { background: #f8fafc; }
+
+/* ─── Pagination ─────────────────────────────────────────── */
+.d-page-btn {
+  min-width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #fff;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5rem;
+}
+.d-page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.d-page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.d-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Switch ─────────────────────────────────────────────── */
+.d-switch {
+  position: relative;
+  display: inline-flex;
+  width: 2.5rem;
+  height: 1.375rem;
+  cursor: pointer;
+  border-radius: 99px;
+  transition: background 0.2s;
+  border: none;
+  outline: none;
+  flex-shrink: 0;
+}
+.d-switch-off { background: #e2e8f0; }
+.d-switch-on  { background: var(--accent); }
+.d-switch-thumb {
+  position: absolute;
+  top: 2px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: left 0.2s;
+}
+.d-switch-off .d-switch-thumb { left: 3px; }
+.d-switch-on  .d-switch-thumb { left: calc(100% - 1.2rem); }
+
+/* ─── Stat card ──────────────────────────────────────────── */
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+.stat-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+.stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; font-weight: 500; }
+
+/* ─── Empty state ────────────────────────────────────────── */
+.d-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
 }

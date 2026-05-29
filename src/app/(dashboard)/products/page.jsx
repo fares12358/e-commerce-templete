@@ -2,90 +2,49 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  getProducts,
-  createProduct,
-  getCategories,
-} from "@/lib/api";
+import { getProducts, createProduct, getCategories } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
 import { toast } from "react-toastify";
 import { compressImage } from "@/utils/helper";
 import { motion } from "framer-motion";
 import {
-  FaBox,
-  FaPlus,
-  FaTags,
-  FaTimes,
-  FaImage,
-  FaFilter,
-  FaSyncAlt,
+  FaBox, FaPlus, FaTags, FaTimes, FaImage,
+  FaFilter, FaSync, FaStar, FaLayerGroup,
 } from "react-icons/fa";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useAuth } from "@/context/AuthContext";
 
-const generateKey = (filters) => {
-  return JSON.stringify({
-    categoryId: filters.categoryId,
-    isActive: filters.isActive,
-    productNumber: filters.productNumber,
-    stockStatus: filters.stockStatus,
-    sort: filters.sort,
-    page: filters.page,
-  });
-};
+/* ─── helpers ──────────────────────────────────────────── */
+const generateKey = (f) =>
+  JSON.stringify({ categoryId: f.categoryId, isActive: f.isActive, productNumber: f.productNumber, stockStatus: f.stockStatus, sort: f.sort, page: f.page });
 
 const getVisiblePages = (current, total) => {
-  const delta = 1; // how many pages around current
-  const pages = [];
-
+  const delta = 1;
   const range = [];
-  for (
-    let i = Math.max(2, current - delta);
-    i <= Math.min(total - 1, current + delta);
-    i++
-  ) {
-    range.push(i);
-  }
-
-  if (current - delta > 2) {
-    range.unshift("...");
-  }
-
-  if (current + delta < total - 1) {
-    range.push("...");
-  }
-
-  pages.push(1);
-  pages.push(...range);
+  for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) range.push(i);
+  if (current - delta > 2) range.unshift("...");
+  if (current + delta < total - 1) range.push("...");
+  const pages = [1, ...range];
   if (total > 1) pages.push(total);
-
   return pages;
 };
 
-/* ================= PAGE ================= */
 export default function ProductsPage() {
   const router = useRouter();
   const fileRef = useRef(null);
-  const { productsCache, setProductsCache } = useAuth()
+  const { productsCache, setProductsCache } = useAuth();
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [filterLoading, setFilterLoading] = useState(false)
+  const [filterLoading, setFilterLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [filters, setFilters] = useState({
-    categoryId: "",
-    isActive: "",
-    sort: "newest",
-    productNumber: "",
-    page: 1,
-    stockStatus: "",
-  });
-
+  const [filters, setFilters] = useState({ categoryId: "", isActive: "", sort: "newest", productNumber: "", page: 1, stockStatus: "" });
   const [tempFilters, setTempFilters] = useState(filters);
 
-  /* ================= FORM STATE ================= */
+  /* ─── form state ─── */
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -96,614 +55,388 @@ export default function ProductsPage() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [images, setImages] = useState([]);
   const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
-  const [selections, setSelections] = useState([
-    { name: "", options: [""] }
-  ]);
+  const [selections, setSelections] = useState([{ name: "", options: [""] }]);
 
-  /* ================= FETCH ================= */
+  /* ─── fetch ─── */
   const fetchAll = async (isFilter = false, force = false) => {
     const key = generateKey(filters);
-
-    // ✅ If cached → use it
-    if (!force && productsCache[key]) {
-      setProducts(productsCache[key]);
-      return;
-    }
-
+    if (!force && productsCache[key]) { setProducts(productsCache[key]); return; }
     try {
-      if (isFilter) {
-        setFilterLoading(true);
-      } else if (!refreshing) {
-        setLoading(true);
-      }
-
+      if (isFilter) setFilterLoading(true);
+      else if (!refreshing) setLoading(true);
       const sortMap = {
-        newest: { sortBy: "createdAt", order: "desc" },
-        oldest: { sortBy: "createdAt", order: "asc" },
-        priceAsc: { sortBy: "price", order: "asc" },
-        priceDesc: { sortBy: "price", order: "desc" },
+        newest:   { sortBy: "createdAt", order: "desc" },
+        oldest:   { sortBy: "createdAt", order: "asc" },
+        priceAsc: { sortBy: "price",     order: "asc" },
+        priceDesc:{ sortBy: "price",     order: "desc" },
       };
-
-      const sortParams = sortMap[filters.sort];
-
-      const response = await getProducts({
-        categoryId: filters.categoryId || undefined,
-        isActive: filters.isActive || undefined,
-        productNumber: filters.productNumber || undefined,
-        stockStatus: filters.stockStatus || undefined,
-        sortBy: sortParams.sortBy,
-        order: sortParams.order,
+      const sp = sortMap[filters.sort];
+      const res = await getProducts({
+        categoryId:   filters.categoryId   || undefined,
+        isActive:     filters.isActive     || undefined,
+        productNumber:filters.productNumber|| undefined,
+        stockStatus:  filters.stockStatus  || undefined,
+        sortBy: sp.sortBy, order: sp.order,
         page: filters.page || 1,
       });
-
-      if (response.success) {
-        setProducts(response.data);
-        // 🔥 Save in cache
-        setProductsCache((prev) => ({
-          ...prev,
-          [key]: response.data,
-        }));
-      }
-
-    } catch {
-      toast.error("Failed to load products");
-    } finally {
-      if (isFilter) {
-        setFilterLoading(false);
-      } else if (!refreshing) {
-        setLoading(false);
-      }
+      if (res.success) { setProducts(res.data); setProductsCache(prev => ({ ...prev, [key]: res.data })); }
+    } catch { toast.error("Failed to load products"); }
+    finally {
+      if (isFilter) setFilterLoading(false);
+      else if (!refreshing) setLoading(false);
     }
   };
 
-  /* ================= ATTRIBUTES ================= */
-
-  const updateAttribute = (i, field, val) => {
-    const copy = [...attributes];
-    copy[i][field] = val;
-    setAttributes(copy);
-  };
-
-  const addAttribute = () =>
-    setAttributes([...attributes, { key: "", value: "" }]);
-
-  const removeAttribute = (i) =>
-    setAttributes(attributes.filter((_, index) => index !== i));
-
-  /* ================= SELECTIONS ================= */
-
-  const updateSelectionName = (i, val) => {
-    const copy = [...selections];
-    copy[i].name = val;
-    setSelections(copy);
-  };
-
-  const updateOption = (i, oi, val) => {
-    const copy = [...selections];
-    copy[i].options[oi] = val;
-    setSelections(copy);
-  };
-
-  const addSelection = () => {
-    setSelections([...selections, { name: "", options: [""] }]);
-  };
-
-  const removeSelection = (i) => {
-    setSelections(selections.filter((_, idx) => idx !== i));
-  };
-
-  const addOption = (i) => {
-    const copy = [...selections];
-    copy[i].options.push("");
-    setSelections(copy);
-  };
-
-  const removeOption = (i, oi) => {
-    const copy = [...selections];
-    copy[i].options = copy[i].options.filter((_, idx) => idx !== oi);
-    setSelections(copy);
-  };
-
-
-  /* ================= IMAGES ================= */
-
-  const handleMultipleImages = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    const remainingSlots = 5 - images.length;
-
-    if (remainingSlots <= 0) {
-      toast.error("Maximum 5 images allowed");
-      return;
-    }
-
-    const filesToAdd = files.slice(0, remainingSlots);
-
-    if (files.length > remainingSlots) {
-      toast.error(`You can only add ${remainingSlots} more image(s)`);
-    }
-
-    const processedImages = await Promise.all(
-      filesToAdd.map(async (file) => {
-        const compressed = await compressImage(file);
-        return {
-          file: compressed || file,
-          preview: URL.createObjectURL(file),
-        };
-      })
-    );
-
-    setImages((prev) => [...prev, ...processedImages]);
-
-    e.target.value = "";
-  };
-
-  const removeImage = (i) =>
-    setImages((prev) => prev.filter((_, index) => index !== i));
-
-  /* ================= SUBMIT ================= */
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!name || !price || !categoryId || images.length === 0)
-      return toast.error("Fill required fields");
-
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("description", description);
-    formData.append("price", price);
-    formData.append("comparePrice", comparePrice);
-    formData.append("sku", sku);
-    formData.append("stock", stock);
-    formData.append("categoryId", categoryId);
-    formData.append("isFeatured", isFeatured);
-    formData.append(
-      "attributes",
-      JSON.stringify(attributes.filter(a => a.key && a.value))
-    );
-    formData.append(
-      "selections",
-      JSON.stringify(
-        selections.filter(
-          s => s.name && s.options.some(o => o)
-        )
-      )
-    );
-
-    images.forEach((img) => formData.append("images", img.file));
-
-    try {
-      setSubmitting(true);
-      await createProduct(formData);
-      toast.success("Product created");
-      resetForm();
-      setProductsCache({});
-      fetchAll();
-    } catch (error) {
-      toast.error(error.message || "Create failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setPrice("");
-    setComparePrice("");
-    setSku("");
-    setStock("");
-    setCategoryId("");
-    setIsFeatured(false);
-    setImages([]);
-    setAttributes([{ key: "", value: "" }]);
-    setSelections([
-      { name: "", options: [""] }
-    ]);
-  };
-
-  useEffect(() => {
-    const fetchCategoriesData = async () => {
-      const res = await getCategories();
-      if (res.success) setCategories(res.data);
-    };
-
-    fetchCategoriesData();
-  }, []);
-
-  useEffect(() => {
-    fetchAll(false);
-  }, []);
-
+  useEffect(() => { getCategories().then(r => { if (r.success) setCategories(r.data); }); }, []);
+  useEffect(() => { fetchAll(false); }, []);
+  useEffect(() => { fetchAll(true); }, [filters]);
 
   const handleRefresh = async () => {
     if (refreshing) return;
     setRefreshing(true);
     setProductsCache({});
-    try {
-      await fetchAll(false, true);
-      toast.success("Products refreshed");
-    } finally {
-      setRefreshing(false);
-    }
+    try { await fetchAll(false, true); toast.success("Products refreshed"); }
+    finally { setRefreshing(false); }
   };
 
-  useEffect(() => {
-    fetchAll(true);
-  }, [filters]);
+  /* ─── attributes ─── */
+  const updateAttr  = (i, field, val) => { const c = [...attributes]; c[i][field] = val; setAttributes(c); };
+  const addAttr     = () => setAttributes([...attributes, { key: "", value: "" }]);
+  const removeAttr  = (i) => setAttributes(attributes.filter((_, idx) => idx !== i));
 
-  if (loading && !refreshing) {
-    return (
-      <div className="flex justify-center items-center py-20 h-full w-full">
-        <Loader />
-      </div>
+  /* ─── selections ─── */
+  const updateSelName = (i, val) => { const c = [...selections]; c[i].name = val; setSelections(c); };
+  const updateOpt     = (i, oi, val) => { const c = [...selections]; c[i].options[oi] = val; setSelections(c); };
+  const addSel        = () => setSelections([...selections, { name: "", options: [""] }]);
+  const removeSel     = (i) => setSelections(selections.filter((_, idx) => idx !== i));
+  const addOpt        = (i) => { const c = [...selections]; c[i].options.push(""); setSelections(c); };
+  const removeOpt     = (i, oi) => { const c = [...selections]; c[i].options = c[i].options.filter((_, idx) => idx !== oi); setSelections(c); };
+
+  /* ─── images ─── */
+  const handleImages = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const slots = 5 - images.length;
+    if (slots <= 0) { toast.error("Max 5 images"); return; }
+    const toAdd = files.slice(0, slots);
+    if (files.length > slots) toast.error(`Only ${slots} more image(s) allowed`);
+    const processed = await Promise.all(
+      toAdd.map(async (f) => ({ file: (await compressImage(f)) || f, preview: URL.createObjectURL(f) }))
     );
-  }
+    setImages(prev => [...prev, ...processed]);
+    e.target.value = "";
+  };
+  const removeImage = (i) => setImages(prev => prev.filter((_, idx) => idx !== i));
+
+  /* ─── submit ─── */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name || !price || !categoryId || !images.length) return toast.error("Fill required fields");
+    const fd = new FormData();
+    fd.append("name", name); fd.append("description", description);
+    fd.append("price", price); fd.append("comparePrice", comparePrice);
+    fd.append("sku", sku); fd.append("stock", stock);
+    fd.append("categoryId", categoryId); fd.append("isFeatured", isFeatured);
+    fd.append("attributes", JSON.stringify(attributes.filter(a => a.key && a.value)));
+    fd.append("selections", JSON.stringify(selections.filter(s => s.name && s.options.some(o => o))));
+    images.forEach(img => fd.append("images", img.file));
+    try {
+      setSubmitting(true);
+      await createProduct(fd);
+      toast.success("Product created");
+      setName(""); setDescription(""); setPrice(""); setComparePrice("");
+      setSku(""); setStock(""); setCategoryId(""); setIsFeatured(false);
+      setImages([]); setAttributes([{ key: "", value: "" }]); setSelections([{ name: "", options: [""] }]);
+      setProductsCache({});
+      fetchAll();
+    } catch (err) { toast.error(err.message || "Create failed"); }
+    finally { setSubmitting(false); }
+  };
+
+  if (loading && !refreshing) return (
+    <div className="flex justify-center items-center py-20 h-full w-full"><Loader /></div>
+  );
 
   return (
     <div className="space-y-5">
 
-      {/* ================= ADD PRODUCT ================= */}
+      {/* ─── Add Product ─── */}
+      <div className="d-card space-y-5">
+        <h2 className="page-title">Add New Product</h2>
 
-      <div className="bg-white shadow-sm rounded-md p-5 space-y-4">
-        <h2 className="font-semibold flex items-center gap-2">
-          <div
-            className='bg-gradient-to-br from-purple-800 to-purple-400 shadow-md text-white rotate-12 w-16 h-16 flex items-center justify-center rounded-xl -translate-y-5 -translate-x-5'
-          >
-            <span className="-rotate-12">
-              <FaBox size={25} className="drop-shadow-md" />
-            </span>
-          </div>
-          Add Product
-        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          <input className="border px-3 py-2 rounded-md" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="border px-3 py-2 rounded-md" placeholder="SKU" value={sku} onChange={(e) => setSku(e.target.value)} />
-
-          <textarea className="border px-3 py-2 rounded-md md:col-span-2" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-
-          <input type="number" className="border px-3 py-2 rounded-md" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
-          <input type="number" className="border px-3 py-2 rounded-md" placeholder="Compare price" value={comparePrice} onChange={(e) => setComparePrice(e.target.value)} />
-
-          <input type="number" className="border px-3 py-2 rounded-md" placeholder="Stock" value={stock} onChange={(e) => setStock(e.target.value)} />
-
-          <CustomSelect
-            placeholder="Select category"
-            value={categoryId}
-            onChange={(val) => setCategoryId(val)}
-            options={[
-              { label: "Select category", value: "" },
-              ...categories.map(c => ({
-                label: c.name,
-                value: c._id
-              }))
-            ]}
-          />
-
-          {/* Upload */}
-          <div
-            onClick={() => {
-              if (images.length >= 5) {
-                toast.error("Maximum 5 images allowed");
-                return;
-              }
-              fileRef.current.click();
-            }}
-            className="flex items-center gap-2 border rounded-md px-4 py-2 cursor-pointer hover:bg-gray-50 w-fit"
-          >
-            <FaImage /> Upload images
-          </div>
-          <input ref={fileRef} hidden type="file" accept="image/*" multiple disabled={images.length >= 5} onChange={handleMultipleImages} />
-
-          {/* Previews */}
-          <div className="flex gap-3 flex-wrap md:col-span-2">
-            {images.map((img, i) => (
-              <div key={i} className="relative">
-                <img src={img.preview} className="h-20 w-20 rounded object-contain object-center border border-gray-200 shadow-sm" />
-                <button onClick={() => removeImage(i)} type="button" className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                  <FaTimes />
-                </button>
-              </div>
-            ))}
+          {/* Basic */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="section-label block mb-1.5">Name *</label>
+              <input className="d-input" placeholder="Product name" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div>
+              <label className="section-label block mb-1.5">SKU</label>
+              <input className="d-input" placeholder="SKU-001" value={sku} onChange={e => setSku(e.target.value)} />
+            </div>
           </div>
 
-          {/* ATTRIBUTES */}
-          <div className="md:col-span-2 space-y-2">
-            <h3 className="font-medium flex items-center gap-2">
-              <FaTags /> Attributes
-            </h3>
+          <div>
+            <label className="section-label block mb-1.5">Description</label>
+            <textarea className="d-input" rows={3} placeholder="Product description..." value={description} onChange={e => setDescription(e.target.value)} />
+          </div>
 
-            {attributes.map((attr, i) => (
-              <div key={i} className="flex gap-2">
-                <input className="border px-3 py-2 w-1/2 rounded-md" placeholder="Key" value={attr.key} onChange={(e) => updateAttribute(i, "key", e.target.value)} />
-                <input className="border px-3 py-2 w-1/2 rounded-md" placeholder="Value" value={attr.value} onChange={(e) => updateAttribute(i, "value", e.target.value)} />
-                {attributes.length > 1 && (
-                  <button onClick={() => removeAttribute(i)} type="button" className="text-red-600 hover:rotate-180 transition-all duration-300 ease-in-out">
-                    <FaTimes />
-                  </button>
-                )}
-              </div>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="section-label block mb-1.5">Price *</label>
+              <input type="number" className="d-input" placeholder="0.00" value={price} onChange={e => setPrice(e.target.value)} />
+            </div>
+            <div>
+              <label className="section-label block mb-1.5">Compare Price</label>
+              <input type="number" className="d-input" placeholder="0.00" value={comparePrice} onChange={e => setComparePrice(e.target.value)} />
+            </div>
+            <div>
+              <label className="section-label block mb-1.5">Stock</label>
+              <input type="number" className="d-input" placeholder="0" value={stock} onChange={e => setStock(e.target.value)} />
+            </div>
+            <div>
+              <label className="section-label block mb-1.5">Category *</label>
+              <CustomSelect
+                placeholder="Select category"
+                value={categoryId}
+                onChange={setCategoryId}
+                options={[
+                  { label: "Select category", value: "" },
+                  ...categories.map(c => ({ label: c.name, value: c._id })),
+                ]}
+              />
+            </div>
+          </div>
 
-            <button type="button" onClick={addAttribute} className="bg-gradient-to-br from-blue-700 to-blue-400 text-white px-5 py-3 rounded-md hover:-translate-y-1 transition duration-300  flex items-center gap-2 w-fit">
-              <FaPlus size={15} /> Add attribute
+          <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+            <input type="checkbox" checked={isFeatured} onChange={e => setIsFeatured(e.target.checked)} className="w-4 h-4 accent-indigo-600" />
+            <FaStar size={11} style={{ color: "#f59e0b" }} />
+            <span className="text-[13px] text-slate-700">Mark as featured</span>
+          </label>
+
+          {/* Images */}
+          <div>
+            <label className="section-label block mb-1.5">Images * (max 5)</label>
+            <button
+              type="button"
+              onClick={() => { if (images.length >= 5) { toast.error("Max 5 images"); return; } fileRef.current.click(); }}
+              className="d-btn d-btn-outline gap-2"
+            >
+              <FaImage size={11} /> Upload Images
             </button>
+            <input ref={fileRef} hidden type="file" accept="image/*" multiple disabled={images.length >= 5} onChange={handleImages} />
+            {images.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-3">
+                {images.map((img, i) => (
+                  <div key={i} className="relative">
+                    <img src={img.preview} className="h-20 w-20 rounded-lg object-contain border" style={{ borderColor: "var(--border)", background: "#f8fafc" }} />
+                    <button type="button" onClick={() => removeImage(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center cursor-pointer border-none">
+                      <FaTimes size={9} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* ================= SELECTIONS ================= */}
-          <div className="md:col-span-2 space-y-3">
-            <h3 className="font-medium flex items-center gap-2">
-              <FaFilter /> Selections (Variants)
-            </h3>
-
-            {selections.map((sel, i) => (
-              <div key={i} className="border rounded-md p-3 space-y-2">
-
-                <div className="flex gap-2">
-                  <input
-                    placeholder="Selection name (ex: Color)"
-                    className="border px-3 py-2 rounded-md flex-1"
-                    value={sel.name}
-                    onChange={(e) =>
-                      updateSelectionName(i, e.target.value)
-                    }
-                  />
-
-                  {selections.length > 1 && (
-                    <button
-                      onClick={() => removeSelection(i)}
-                      className="text-red-600 hover:rotate-180 transition-all duration-300 ease-in-out"
-                    >
-                      <FaTimes />
+          {/* Attributes */}
+          <div>
+            <p className="section-label mb-2 flex items-center gap-1.5"><FaTags size={10} /> Attributes</p>
+            <div className="space-y-2">
+              {attributes.map((attr, i) => (
+                <div key={i} className="flex gap-2">
+                  <input className="d-input" placeholder="Key (e.g. material)" value={attr.key} onChange={e => updateAttr(i, "key", e.target.value)} />
+                  <input className="d-input" placeholder="Value (e.g. cotton)" value={attr.value} onChange={e => updateAttr(i, "value", e.target.value)} />
+                  {attributes.length > 1 && (
+                    <button type="button" onClick={() => removeAttr(i)}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer border-none bg-transparent flex-shrink-0"
+                      style={{ color: "#ef4444" }}>
+                      <FaTimes size={11} />
                     </button>
                   )}
                 </div>
+              ))}
+              <button type="button" onClick={addAttr} className="d-btn d-btn-outline gap-1.5 text-[12px]">
+                <FaPlus size={9} /> Add attribute
+              </button>
+            </div>
+          </div>
 
-                {/* OPTIONS */}
-                {sel.options.map((opt, oi) => (
-                  <div key={oi} className="flex gap-2">
-                    <input
-                      placeholder="Option (ex: Red)"
-                      className="border px-3 py-2 rounded-md flex-1"
-                      value={opt}
-                      onChange={(e) =>
-                        updateOption(i, oi, e.target.value)
-                      }
-                    />
-
-                    {sel.options.length > 1 && (
-                      <button
-                        onClick={() => removeOption(i, oi)}
-                        className="text-red-600 hover:rotate-180 transition-all duration-300 ease-in-out"
-                      >
-                        <FaTimes />
+          {/* Selections */}
+          <div>
+            <p className="section-label mb-2 flex items-center gap-1.5"><FaLayerGroup size={10} /> Selections (Variants)</p>
+            <div className="space-y-3">
+              {selections.map((sel, i) => (
+                <div key={i} className="rounded-xl p-3 space-y-2" style={{ background: "#f8fafc", border: "1px solid var(--border)" }}>
+                  <div className="flex gap-2">
+                    <input className="d-input" placeholder="Variant name (e.g. Color)" value={sel.name} onChange={e => updateSelName(i, e.target.value)} />
+                    {selections.length > 1 && (
+                      <button type="button" onClick={() => removeSel(i)}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer border-none bg-transparent flex-shrink-0"
+                        style={{ color: "#ef4444" }}>
+                        <FaTimes size={11} />
                       </button>
                     )}
                   </div>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => addOption(i)}
-                  className="text-sm text-black flex items-center gap-1 py-3 px-4 shadow-sm rounded-md bg-gradient-to-br from-gray-200 to-gray-50 hover:-translate-y-1 transition ease-in-out duration-300"
-                >
-                  <FaPlus /> Add option
-                </button>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addSelection}
-              className="bg-gradient-to-br from-purple-700 to-purple-400 text-white px-5 py-3 rounded-md hover:-translate-y-1 transition flex items-center gap-2 w-fit"
-            >
-              <FaPlus size={15} /> Add selection
-            </button>
+                  {sel.options.map((opt, oi) => (
+                    <div key={oi} className="flex gap-2">
+                      <input className="d-input" placeholder="Option (e.g. Red)" value={opt} onChange={e => updateOpt(i, oi, e.target.value)} />
+                      {sel.options.length > 1 && (
+                        <button type="button" onClick={() => removeOpt(i, oi)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg cursor-pointer border-none bg-transparent flex-shrink-0"
+                          style={{ color: "#ef4444" }}>
+                          <FaTimes size={11} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addOpt(i)} className="d-btn d-btn-outline text-[11px] gap-1 py-1">
+                    <FaPlus size={8} /> Add option
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={addSel} className="d-btn d-btn-outline gap-1.5 text-[12px]">
+                <FaPlus size={9} /> Add selection
+              </button>
+            </div>
           </div>
 
-          <button disabled={submitting} className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-3 rounded-md hover:-translate-y-1 transition duration-300 md:col-span-2">
-            {submitting ? "Creating..." : "Create Product"}
+          <button disabled={submitting} className="d-btn d-btn-primary w-full h-10 gap-2">
+            {submitting ? <><Loader size={14} color="#fff" /> Creating...</> : <><FaBox size={11} /> Create Product</>}
           </button>
         </form>
       </div>
 
-      {/* ================= FILTERS ================= */}
-
-      <div className="flex flex-wrap gap-4 items-center bg-white shadow-sm rounded-md p-4">
-
-        <input
-          placeholder="Search by product number"
-          className="border px-3 py-2 rounded-md w-full"
-          value={tempFilters.productNumber}
-          onChange={(e) =>
-            setTempFilters({ ...tempFilters, productNumber: e.target.value })
-          }
-        />
-
-        <CustomSelect
-          placeholder="All categories"
-          value={tempFilters.categoryId}
-          onChange={(val) =>
-            setTempFilters({ ...tempFilters, categoryId: val })
-          }
-
-          options={[
-            { label: "All categories", value: "" },
-            ...categories.map(c => ({
-              label: c.name,
-              value: c._id
-            }))
-          ]}
-        />
-
-        {/* <CustomSelect
-          placeholder="Status"
-          value={filters.isActive}
-          onChange={(val) =>
-            setFilters({ ...filters, isActive: val, page: 1 })
-          }
-          options={[
-            { label: "All status", value: "" },
-            { label: "Active", value: "true" },
-            { label: "Disabled", value: "false" },
-          ]}
-        /> */}
-
-        <CustomSelect
-          placeholder="Sort"
-          value={tempFilters.sort}
-          onChange={(val) =>
-            setTempFilters({ ...tempFilters, sort: val })
-          }
-
-          options={[
-            { label: "Newest", value: "newest" },
-            { label: "Oldest", value: "oldest" },
-            { label: "Price low → high", value: "priceAsc" },
-            { label: "Price high → low", value: "priceDesc" },
-          ]}
-        />
-
-        <CustomSelect
-          placeholder="Stock"
-          value={tempFilters.stockStatus}
-          onChange={(val) =>
-            setTempFilters({ ...tempFilters, stockStatus: val })
-          }
-          options={[
-            { label: "All", value: "" },
-            { label: "In Stock", value: "instock" },
-            { label: "Out of Stock", value: "outstock" },
-          ]}
-        />
-
-        <div className="w-fit flex items-center gap-4">
-
-          <button
-            onClick={() => setFilters({ ...tempFilters, page: 1 })}
-            className="bg-gradient-to-br from-black to-black/70 text-white px-4 py-2 rounded-md hover:-translate-y-1 transition duration-300 ease-in-out flex items-center justify-center gap-2"
-          >
-            <FaFilter />
-            Apply
-          </button>
-
-          <button
-            onClick={() => {
-              const clean = {
-                categoryId: "",
-                isActive: "",
-                productNumber: "",
-                sort: "newest",
-                page: 1,
-                stockStatus: "",
-              };
-              setTempFilters(clean);
-              setFilters(clean);
-            }}
-            className="border px-4 py-2 rounded-md hover:bg-gray-50 hover:-translate-y-1 transition duration-300 ease-in-out"
-          >
-            Clear
-          </button>
+      {/* ─── Filters ─── */}
+      <div className="d-card">
+        <p className="section-label mb-3">Filter Products</p>
+        <div className="flex flex-wrap gap-2.5 items-end">
+          <input
+            placeholder="Search by product number..."
+            className="d-input flex-1 min-w-[200px]"
+            value={tempFilters.productNumber}
+            onChange={e => setTempFilters({ ...tempFilters, productNumber: e.target.value })}
+          />
+          <CustomSelect
+            placeholder="All categories"
+            value={tempFilters.categoryId}
+            onChange={v => setTempFilters({ ...tempFilters, categoryId: v })}
+            options={[{ label: "All categories", value: "" }, ...categories.map(c => ({ label: c.name, value: c._id }))]}
+          />
+          <CustomSelect
+            placeholder="Sort"
+            value={tempFilters.sort}
+            onChange={v => setTempFilters({ ...tempFilters, sort: v })}
+            options={[
+              { label: "Newest",   value: "newest" },
+              { label: "Oldest",   value: "oldest" },
+              { label: "Price ↑",  value: "priceAsc" },
+              { label: "Price ↓",  value: "priceDesc" },
+            ]}
+          />
+          <CustomSelect
+            placeholder="Stock"
+            value={tempFilters.stockStatus}
+            onChange={v => setTempFilters({ ...tempFilters, stockStatus: v })}
+            options={[
+              { label: "All",          value: "" },
+              { label: "In Stock",     value: "instock" },
+              { label: "Out of Stock", value: "outstock" },
+            ]}
+          />
+          <div className="flex gap-2">
+            <button onClick={() => setFilters({ ...tempFilters, page: 1 })} className="d-btn d-btn-primary gap-1.5">
+              <FaFilter size={10} /> Apply
+            </button>
+            <button
+              onClick={() => {
+                const c = { categoryId: "", isActive: "", productNumber: "", sort: "newest", page: 1, stockStatus: "" };
+                setTempFilters(c); setFilters(c);
+              }}
+              className="d-btn d-btn-outline"
+            >
+              Clear
+            </button>
+            <button onClick={handleRefresh} disabled={refreshing} className="d-btn d-btn-outline" title="Refresh">
+              <FaSync size={11} className={refreshing ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
-
-
       </div>
-      <div className="flex w-full justify-end items-center">
-        <button onClick={handleRefresh} disabled={refreshing} className="bg-gradient-to-br from-cyan-600 to-cyan-300 p-3 w-fit rounded-md text-white cursor-pointer group">
-          <FaSyncAlt className={`${refreshing ? 'animate-spin' : ''} group-hover:rotate-180 duration-300 ease-in-out`} />
-        </button>
-      </div>
-      {/* ================= PRODUCTS GRID ================= */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {
-          filterLoading ? <div className="w-full min-h-[25vh] col-span-4 flex items-center justify-center"><Loader size={30} /> </div>
-            :
-            products?.products?.length == 0 ?
-              <div className="w-full h-fit py-5 flex items-center justify-center text-gray-500 font-semibold col-span-4 min-h-[25vh] bg-white rounded-md border">
-                No Products Found
+      {/* ─── Products Grid ─── */}
+      {filterLoading ? (
+        <div className="flex items-center justify-center py-20"><Loader /></div>
+      ) : !products?.products?.length ? (
+        <div className="d-empty">No products found</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {products.products.map((p, i) => (
+            <motion.div
+              key={p._id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              onClick={() => router.push(`/products/${p._id}`)}
+              className="bg-white rounded-xl overflow-hidden cursor-pointer transition-shadow duration-200 hover:shadow-md"
+              style={{ border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+            >
+              <div className="h-36 overflow-hidden" style={{ background: "#f8fafc" }}>
+                <img src={p.images?.[0]?.url} className="w-full h-full object-cover" alt={p.name} />
               </div>
-              :
-              products?.products?.map((p, i) => (
-                <motion.div
-                  key={p._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => router.push(`/products/${p._id}`)}
-                  className="cursor-pointer border rounded-md overflow-hidden shadow-sm hover:shadow-md transition duration-300 ease-in-out bg-white" dir="rtl"
-                >
-                  <div className="h-40 bg-gray-100">
-                    <img src={p.images?.[0]?.url} className="w-full h-full object-cover" />
-                  </div>
-
-                  <div className="p-3 space-y-1 flex flex-col gap-2">
-                    <div className="font-medium truncate line-clamp-2">{p.name}</div>
-                    <div className="text-sm text-gray-600 line-clamp-2">{p.categoryId.name}</div>
-                    <div className={`text-sm ${p.stock > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}  font-bold w-fit rounded py-1 px-2`}>stock {p.stock}</div>
-                    <div className="font-semibold">{p.price.toLocaleString()}</div>
-                  </div>
-                </motion.div>
-              ))}
-      </div>
-
-      {/* ================= PAGINATION ================= */}
-
-      {products?.pagination?.totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-8">
-
-          <button
-            disabled={products.pagination.page === 1}
-            onClick={() =>
-              setFilters({ ...filters, page: products.pagination.page - 1 })
-            }
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Prev
-          </button>
-
-          {getVisiblePages(
-            products.pagination.page,
-            products.pagination.totalPages
-          ).map((page, index) => (
-            page === "..." ? (
-              <span key={index} className="px-3 py-1">
-                ...
-              </span>
-            ) : (
-              <button
-                key={page}
-                onClick={() => setFilters({ ...filters, page })}
-                className={`px-3 py-1 border rounded ${page === products.pagination.page
-                  ? "bg-black text-white"
-                  : ""
-                  }`}
-              >
-                {page}
-              </button>
-            )
+              <div className="p-3 space-y-1.5">
+                <p className="font-medium text-[13px] text-slate-900 line-clamp-2 leading-snug">{p.name}</p>
+                <p className="text-[11px]" style={{ color: "var(--text-subtle)" }}>{p.categoryId?.name}</p>
+                <div className="flex items-center justify-between gap-1">
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: p.stock > 0 ? "#dcfce7" : "#fee2e2", color: p.stock > 0 ? "#15803d" : "#b91c1c" }}
+                  >
+                    Stock: {p.stock}
+                  </span>
+                  <span className="text-[13px] font-bold text-slate-900">{p.price?.toLocaleString()}</span>
+                </div>
+              </div>
+            </motion.div>
           ))}
-
-          <button
-            disabled={
-              products.pagination.page === products.pagination.totalPages
-            }
-            onClick={() =>
-              setFilters({ ...filters, page: products.pagination.page + 1 })
-            }
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-
         </div>
       )}
 
-
+      {/* ─── Pagination ─── */}
+      {products?.pagination?.totalPages > 1 && (
+        <div className="flex justify-center flex-wrap gap-1.5">
+          <button
+            disabled={products.pagination.page === 1}
+            onClick={() => setFilters({ ...filters, page: products.pagination.page - 1 })}
+            className="d-page-btn"
+          >
+            Prev
+          </button>
+          {getVisiblePages(products.pagination.page, products.pagination.totalPages).map((p, i) =>
+            p === "..." ? (
+              <span key={i} className="d-page-btn border-none">…</span>
+            ) : (
+              <button
+                key={i}
+                onClick={() => setFilters({ ...filters, page: p })}
+                className={`d-page-btn ${p === products.pagination.page ? "active" : ""}`}
+              >
+                {p}
+              </button>
+            )
+          )}
+          <button
+            disabled={products.pagination.page === products.pagination.totalPages}
+            onClick={() => setFilters({ ...filters, page: products.pagination.page + 1 })}
+            className="d-page-btn"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,47 +19,49 @@ export default function ConfirmModal({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          className="bg-white rounded-md p-6 w-full max-w-sm"
+          initial={{ scale: 0.95, opacity: 0, y: 8 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 8 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6"
+          style={{ border: "1px solid var(--border)" }}
         >
-          <h3 className="text-lg font-medium mb-2">{title}</h3>
-          <p className="text-sm text-gray-600 mb-6">{message}</p>
-          {/* Reset Checkbox */}
+          <h3 className="text-[15px] font-semibold text-slate-900 mb-1.5">{title}</h3>
+          <p className="text-[13px] text-slate-500 mb-5">{message}</p>
+
           {showResetOption && (
-            <div className="flex items-center gap-2 my-4">
+            <label className="flex items-center gap-2.5 mb-5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={resetValue}
                 onChange={(e) => setResetValue(e.target.checked)}
-                className="w-4 h-4"
+                className="w-4 h-4 accent-indigo-600 rounded"
               />
-              <label className="text-sm text-gray-600">
+              <span className="text-[13px] text-slate-600">
                 Reset stock (return products to inventory)
-              </label>
-            </div>
+              </span>
+            </label>
           )}
-          <div className="flex justify-end gap-3">
+
+          <div className="flex gap-2.5 justify-end">
             <button
               disabled={loading}
               onClick={onCancel}
-              className="px-4 py-2 text-sm border rounded-md"
+              className="d-btn d-btn-outline"
             >
               Cancel
             </button>
-
             <button
               onClick={onConfirm}
               disabled={loading}
-              className="px-4 py-2 text-sm bg-red-600 text-white rounded-md disabled:opacity-60 flex items-center gap-2"
+              className="d-btn d-btn-danger"
             >
               {loading && <Loader size={14} color="#fff" />}
               Confirm
